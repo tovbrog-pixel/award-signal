@@ -2,6 +2,8 @@
 
     awards   download DoD awards (or load a CSV) into data/awards.csv
     match    match award recipients to SEC-listed companies
+    widen    stage 2 version 2 data: subsidiaries, SBIR, SAM award notices (no returns)
+    backtest stages 2 and 3 (--rules v1 or v2)
     run      build events, run the event study, write output/report.html
     demo     run the whole pipeline on synthetic data (no internet needed)
 """
@@ -158,18 +160,97 @@ def cmd_budget(cfg: dict) -> None:
     print(f"Saved {out / 'areas_by_year.csv'} and {out / 'lines_flagged.csv'}")
 
 
-def cmd_backtest(cfg: dict) -> None:
+def _name_inputs(cfg: dict):
+    from .notices import build_name_index
+    from .sec import load_all_names, load_av_delisted, load_tickers
+
+    data = Path(cfg["data_dir"])
+    http = _http(cfg, "sec")
+    key = str(cfg.get("alphavantage_api_key") or "").strip()
+    delisted = load_av_delisted(Http(data / "cache" / "alphavantage", "award-signal"), key) if key else None
+    tickers, all_names = load_tickers(http), load_all_names(http)
+    return http, tickers, all_names, build_name_index(tickers, delisted, all_names)
+
+
+def cmd_widen(cfg: dict) -> None:
+    """Stage 2, version 2 data: subsidiaries, SBIR, SAM award notices, wider matching.
+    Writes the matched award history and a match review file. Computes no returns."""
+    import requests
+    import yaml
+
+    from . import widen
+    from .match2 import Matcher, apply_company_rules, match_table
+    from .stages import company_awards_v2
+
+    data = Path(cfg["data_dir"])
+    out = Path(cfg["output_dir"]) / "stages_v2"
+    out.mkdir(parents=True, exist_ok=True)
+    areas = yaml.safe_load(Path(cfg["budget"]["areas_file"]).read_text(encoding="utf-8"))["areas"]
+    http, tickers, all_names, index = _name_inputs(cfg)
+    http.min_interval = 0.11                       # SEC allows 10 requests a second
+
+    subs_path = data / "subsidiaries.csv"
+    if subs_path.exists():
+        subs = pd.read_csv(subs_path, parse_dates=["valid_from", "valid_until"])
+    else:
+        print("Finding companies with public float between $50M and $10B (SEC frames)...")
+        scope = widen.float_ciks(http)
+        print(f"  {len(scope):,} companies; reading their SEC profiles for industry codes...")
+        info, _ = widen.company_info(http, sorted(scope))
+        scope = sorted(info.loc[info["sic"].map(lambda c: widen._in(c, widen.EX21_SIC)), "cik"].astype(int))
+        print(f"  {len(scope):,} in defense-related industries; reading Exhibit 21 subsidiary lists...")
+        subs = widen.build_subsidiaries(http, scope)
+        subs.to_csv(subs_path, index=False)
+    print(f"Subsidiary names: {len(subs):,} for {subs['cik'].nunique() if len(subs) else 0:,} companies")
+
+    session = requests.Session()
+    session.headers["User-Agent"] = "award-signal research"
+    (data / "sbir").mkdir(exist_ok=True)
+    try:
+        sbir = widen.load_sbir(data / "sbir" / "award_data_no_abstract.csv", session)
+    except Exception as exc:
+        print(f"SBIR file not available ({exc}). Save award_data_no_abstract.csv from sbir.gov in data\\sbir and rerun.")
+        sbir = widen.load_sbir(data / "sbir" / "missing.csv")
+    sam_files = sorted((data / "notices").glob("FY*_awards.csv"))
+    sam = widen.load_sam_awards(sam_files)
+    raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
+    if raw["description"].fillna("").str.len().max() <= 300:
+        sys.exit("announcements_raw.csv still holds 300-character descriptions: run run_announcements.bat first.")
+    sources = widen.combine_sources(widen.announcement_rows(raw), sam, sbir)
+    print(f"Award rows: {sources['source'].value_counts().to_dict()}")
+
+    matcher = Matcher(index, tickers, all_names, subs)
+    mt = match_table(sources["recipient_name"], matcher)
+    info, former = widen.company_info(http, sorted(mt["cik"].astype(int).unique()))
+    mt = apply_company_rules(mt, info, former, widen.DROP_SIC)
+    mt.to_csv(data / "v2_matches.csv", index=False)
+    aw = company_awards_v2(sources, mt, areas)
+    aw.assign(areas=aw["areas"].map(";".join)).to_csv(data / "v2_awards.csv", index=False)
+
+    review = aw.groupby(["cik", "ticker"]).agg(
+        dollars=("amount", "sum"), awards=("amount", "size"),
+        sources=("source", lambda x: ", ".join(sorted(set(x)))),
+        match_types=("match_type", lambda x: ", ".join(sorted(set(x)))),
+        recipient_names=("recipient_name", lambda x: " | ".join(sorted(set(x))[:6]))).reset_index()
+    review = review.merge(info[["cik", "name", "sic", "sic_description"]], on="cik", how="left")
+    review.sort_values("dollars", ascending=False).to_csv(out / "match_review.csv", index=False)
+    print(f"{len(aw):,} award rows matched to {aw['key'].nunique():,} public companies "
+          f"(match types: {aw['match_type'].value_counts().to_dict()})")
+    print(f"Saved data/v2_awards.csv and {out / 'match_review.csv'} (no returns computed)")
+
+
+def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
     import json
 
     import yaml
 
-    from .notices import build_name_index
     from .report import _table
-    from .sec import Fundamentals, load_all_names, load_av_delisted, load_tickers
+    from .sec import Fundamentals
     from .stages import build_positions, company_awards, portfolio_by_year, random_area_placebo
 
-    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "stages"
+    data = Path(cfg["data_dir"])
+    out = Path(cfg["output_dir"]) / ("stages" if rules == "v1" else "stages_v2")
     out.mkdir(parents=True, exist_ok=True)
     sig_path = Path(cfg["output_dir"]) / "budget" / "areas_by_year.csv"
     if not sig_path.exists():
@@ -177,13 +258,21 @@ def cmd_backtest(cfg: dict) -> None:
     signals = pd.read_csv(sig_path, parse_dates=["signal_date"])
     signals = signals[signals["request_fy"] >= int(cfg["stages"]["first_request_fy"])]
     areas = yaml.safe_load(Path(cfg["budget"]["areas_file"]).read_text(encoding="utf-8"))["areas"]
-    http = _http(cfg, "sec")
-    key = str(cfg.get("alphavantage_api_key") or "").strip()
-    delisted = load_av_delisted(Http(data / "cache" / "alphavantage", "award-signal"), key) if key else None
-    index = build_name_index(load_tickers(http), delisted, load_all_names(http))
-    raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
-    awards = company_awards(raw, index, areas)
-    print(f"{len(awards):,} award announcements matched to {awards['key'].nunique():,} public companies")
+    if rules == "v1":
+        http, _, _, index = _name_inputs(cfg)
+        raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
+        raw["description"] = raw["description"].fillna("").str[:300]   # v1 tagged the first 300 characters
+        awards = company_awards(raw, index, areas)
+    else:
+        http = _http(cfg, "sec")
+        awards = pd.read_csv(data / "v2_awards.csv", parse_dates=["action_date", "available_date", "delisting_date"],
+                             dtype={"key": str, "ticker": str}, keep_default_na=False, na_values=[""])
+        awards["areas"] = awards["areas"].fillna("").map(lambda x: [a for a in str(x).split(";") if a])
+        excl = yaml.safe_load(Path("match_exclusions_v2.yaml").read_text(encoding="utf-8")) or {}
+        drop = {int(e["cik"]) for e in excl.get("exclude", []) or []}
+        print(f"Excluding {len(drop)} companies listed in match_exclusions_v2.yaml")
+        awards = awards[~awards["cik"].astype(int).isin(drop)]
+    print(f"{len(awards):,} award rows matched to {awards['key'].nunique():,} public companies")
     pos = build_positions(signals, awards, Fundamentals(http), make_provider(cfg), cfg)
     pos.to_csv(out / "positions.csv", index=False)
     years = portfolio_by_year(pos)
@@ -195,7 +284,7 @@ def cmd_backtest(cfg: dict) -> None:
     current = pos[(pos["request_fy"] == signals["request_fy"].max()) & pos["rising"]].copy()
     current.to_csv(out / "current_picks.csv", index=False)
     traded = pos[(pos["status"] == "traded") & pos["rising"]].drop_duplicates(["request_fy", "ticker"])
-    summary = {"author": "Tov Binyamin Brog", "companies_matched": int(awards["key"].nunique()),
+    summary = {"author": "Tov Binyamin Brog", "rules": rules, "companies_matched": int(awards["key"].nunique()),
                "positions": int(len(traded)), "mean_net_excess": float(traded["net_excess"].mean()) if len(traded) else None,
                "status_counts": pos[pos["rising"]]["status"].value_counts().to_dict(),
                "yearly_test": {"completed_years": int(len(done)), "years_beating_iwm": positive, "years_required": need,
@@ -236,7 +325,7 @@ def cmd_notices(cfg: dict) -> None:
     files = []
     for fy in range(first_fy, last_fy + 1):
         out = ndir / f"FY{fy}.csv"
-        if not out.exists():
+        if not out.exists() or not (ndir / f"FY{fy}_awards.csv").exists():
             print(f"Streaming SAM.gov archive FY{fy} (large file; only matching notices are kept)...")
             for attempt in range(3):
                 try:
@@ -273,7 +362,8 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "backtest", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "run", "demo"])
+    ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--effect", type=float, default=0.15, help="demo only: planted effect size")
     ap.add_argument("--source", choices=["usaspending", "announcements", "csv"],
@@ -292,5 +382,6 @@ def main(argv=None) -> None:
     if args.no_ratio:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
-     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg), "backtest": lambda: cmd_backtest(cfg),
+     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg),
+     "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

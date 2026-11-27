@@ -460,3 +460,132 @@ def test_exposure_uses_only_earlier_awards():
                        "recipient_name": "A Co"})
     ex = exposure(aw, pd.Timestamp("2021-07-01"), STAGE_CFG).set_index("area")
     assert ex.loc["space", "share"] == 1.0 and "cyber" not in ex.index   # the August 2021 award is not known yet
+
+
+# ---------------------------------------------------------------- stage 2, version 2
+
+def _v2_index():
+    from award_signal.notices import build_name_index
+    tickers = pd.DataFrame({"cik": [10, 11, 12, 13], "ticker": ["LMT", "VTX", "VVX", "KTOS"],
+                            "sec_title": ["Lockheed Martin Corp", "Vertex, Inc.", "V2X, Inc.",
+                                          "Kratos Defense & Security Solutions, Inc."]})
+    all_names = pd.DataFrame({"sec_title": ["VECTRUS, INC.", "LOCKHEED MARTIN CORP"], "cik": [12, 10]})
+    return tickers, all_names, build_name_index(tickers, None, all_names)
+
+
+def test_v2_matcher_rules():
+    from award_signal.match2 import Matcher, match_table
+    tickers, all_names, index = _v2_index()
+    subs = pd.DataFrame({"key": [normalize("Kratos Unmanned Aerial Systems, Inc.")], "cik": [13],
+                         "valid_from": [pd.Timestamp("2016-03-01")], "valid_until": [pd.Timestamp("2018-03-01")]})
+    m = Matcher(index, tickers, all_names, subs)
+    names = pd.Series(["Lockheed Martin Rotary and Mission Systems", "Vectrus Systems Corp", "Vertex Aerospace LLC",
+                       "Kratos Unmanned Aerial Systems Inc", "Vertex Inc", "Unrelated Widgets LLC"])
+    mt = match_table(names, m).set_index("recipient_name")
+    assert mt.loc["Lockheed Martin Rotary and Mission Systems", "ticker"] == "LMT"
+    assert mt.loc["Lockheed Martin Rotary and Mission Systems", "match_type"] == "prefix"
+    assert mt.loc["Vectrus Systems Corp", "ticker"] == "VVX"                   # former name, then prefix
+    assert mt.loc["Vectrus Systems Corp", "former_name"] == "VECTRUS"
+    assert mt.loc["Vectrus Systems Corp", "one_word_unconfirmed"]
+    assert mt.loc["Kratos Unmanned Aerial Systems Inc", "match_type"] == "subsidiary"
+    assert mt.loc["Kratos Unmanned Aerial Systems Inc", "valid_from"] == pd.Timestamp("2016-03-01")
+    assert "Unrelated Widgets LLC" not in mt.index
+    # one-word prefix: confirmed when the company wins awards under its own exact name
+    assert not mt.loc["Vertex Aerospace LLC", "one_word_unconfirmed"]
+    mt2 = match_table(names.drop(4), Matcher(index, tickers, all_names, subs)).set_index("recipient_name")
+    assert mt2.loc["Vertex Aerospace LLC", "one_word_unconfirmed"]
+
+
+def test_v2_company_rules_date_former_names_and_drop_industries():
+    from award_signal.match2 import Matcher, apply_company_rules, match_table
+    from award_signal.widen import DROP_SIC
+    tickers, all_names, index = _v2_index()
+    mt = match_table(pd.Series(["Vectrus Systems Corp", "Lockheed Martin Space", "Vertex Aerospace LLC"]),
+                     Matcher(index, tickers, all_names))
+    info = pd.DataFrame({"cik": [10, 11, 12], "sic": ["6331", "5961", "8744"]})
+    former = pd.DataFrame({"cik": [12], "key": ["VECTRUS"], "from": [pd.Timestamp("2014-05-01")],
+                           "to": [pd.Timestamp("2022-07-05")]})
+    out = apply_company_rules(mt, info, former, DROP_SIC).set_index("recipient_name")
+    assert "Lockheed Martin Space" not in out.index                          # insurance SIC: dropped
+    assert "Vertex Aerospace LLC" not in out.index      # unconfirmed one-word prefix, retail SIC: dropped
+    assert out.loc["Vectrus Systems Corp", "valid_until"] == pd.Timestamp("2023-07-05")
+    no_dates = apply_company_rules(mt, info, former.iloc[0:0], DROP_SIC)
+    assert "Vectrus Systems Corp" not in set(no_dates["recipient_name"])   # undated former name: not used
+
+
+def test_v2_announcement_text_cleanup():
+    from award_signal.widen import announcement_tag_text
+    t = ("Acme Corp., Huntsville, Alabama, is awarded $9,000,000 for IT help desk support. Work will be performed "
+         "in San Diego, California, and is expected to be completed by June 2027. Fiscal 2024 Space Force "
+         "operations funds of $1,000,000 are being obligated at the time of award. Space and Naval Warfare "
+         "Systems Command, San Diego, California, is the contracting activity (N00039-24-C-0001).")
+    clean = announcement_tag_text(t).lower()
+    assert "help desk" in clean and "space" not in clean
+    t2 = "Beta Inc., is awarded $8,000,000 for hypersonic glide body testing at White Sands Missile Range."
+    assert "hypersonic" in announcement_tag_text(t2).lower() and "missile" not in announcement_tag_text(t2).lower()
+
+
+def test_v2_parse_ex21_html_and_text():
+    from award_signal.widen import parse_ex21
+    html = ("<p>SUBSIDIARIES OF THE REGISTRANT</p><table><tr><td>Name</td><td>Jurisdiction</td></tr>"
+            "<tr><td>Kratos Unmanned Aerial Systems, Inc.</td><td>California</td></tr>"
+            "<tr><td>Kratos SRE, Inc. (100%)</td><td>Delaware</td></tr>"
+            "<tr><td>Delaware</td><td></td></tr></table>")
+    assert parse_ex21(html) == ["Kratos Unmanned Aerial Systems, Inc.", "Kratos SRE, Inc."]
+    text = "Exhibit 21\nAdvanced Acoustic Concepts, LLC      New York\nMicrosemi Frequency Products ...... Texas\n"
+    assert parse_ex21(text) == ["Advanced Acoustic Concepts, LLC", "Microsemi Frequency Products"]
+
+
+def test_v2_subsidiary_windows_and_ambiguity():
+    from award_signal import widen
+
+    class FakeHttp:
+        def json(self, method, url, body=None):
+            if "submissions" in url:
+                cik = int(url.split("CIK")[1][:10])
+                return {"filings": {"recent": {"form": ["10-K", "10-K", "10-K"],
+                                                "filingDate": ["2015-03-01", "2017-03-01", "2019-03-01"],
+                                                "accessionNumber": [f"{cik}-15", f"{cik}-17", f"{cik}-19"]}}}
+            return {"directory": {"item": [{"name": "ex21.htm"}]}}
+
+        def text(self, url):
+            acc = url.split("/")[-2]
+            cik = url.split("/")[-3]
+            lists = {"1": {"115": "Alpha Sub Inc", "117": "Alpha Sub Inc\nShared Name Inc", "119": "Beta Sub Inc"},
+                     "2": {"215": "Shared Name Inc", "217": "Shared Name Inc", "219": ""}}
+            return lists[cik][acc]
+
+    subs = widen.build_subsidiaries(FakeHttp(), [1, 2], log=lambda *a: None).set_index("key")
+    assert subs.loc["ALPHA SUB", "valid_from"] == pd.Timestamp("2015-03-01")
+    assert subs.loc["ALPHA SUB", "valid_until"] == pd.Timestamp("2019-03-01")   # dropped from the 2019 list
+    assert subs.loc["BETA SUB", "valid_until"] == pd.Timestamp("2021-03-01")
+    assert "SHARED NAME" not in subs.index                                   # two parents in 2015-2017
+
+
+def test_v2_sources_sbir_sam_and_exposure_lag(tmp_path):
+    from award_signal import widen
+    from award_signal.stages import company_awards_v2, exposure
+    p = tmp_path / "sbir.csv"
+    pd.DataFrame({"Company": ["Acme Corp", "Acme Corp", "Acme Corp"], "Award Title": ["Counter-UAS radar", "x", "y"],
+                  "Agency": ["Department of Defense", "Department of Energy", "Department of Defense"],
+                  "Proposal Award Date": ["2019-02-01", "2019-02-01", "2019-03-01"],
+                  "Award Amount": ["$1,500,000", "900000", "9,000,000"], "Contract": ["FA8650-19-C-1111", "", ""]
+                  }).to_csv(p, index=False)
+    sbir = widen.load_sbir(p)
+    assert len(sbir) == 1 and sbir["available_date"].iloc[0] == pd.Timestamp("2020-02-01")
+    assert widen.keep_award_notice({"Type": "Award Notice", "Department/Ind.Agency": "DEPT OF DEFENSE", "Award$": "250000"})
+    assert not widen.keep_award_notice({"Type": "Award Notice", "Department/Ind.Agency": "DEPT OF DEFENSE", "Award$": "9000000"})
+    sam = pd.DataFrame({"source": "sam", "recipient_name": "Acme Corp", "action_date": [pd.Timestamp("2019-06-01")],
+                        "available_date": [pd.Timestamp("2019-06-01")], "amount": [2e6], "text": ["Counter-UAS kit"],
+                        "contract": ["FA8650-19-C-1111"]})
+    src = widen.combine_sources(sam.iloc[0:0], sam, sbir)
+    assert list(src["source"]) == ["sam"]                                    # same contract posted twice
+    src = widen.combine_sources(sam.iloc[0:0], sam.assign(contract="OTHER"), sbir)
+    mt = pd.DataFrame({"recipient_name": ["Acme Corp"], "ticker": ["ACME"], "cik": [9], "delisting_date": [None],
+                       "match_type": ["exact"], "valid_from": [pd.Timestamp("1900-01-01")],
+                       "valid_until": [pd.Timestamp("2200-01-01")]})
+    aw = company_awards_v2(src, mt, {"counter_uas": ["counter-uas"]})
+    ex = exposure(aw, pd.Timestamp("2019-07-01"), STAGE_CFG)
+    assert ex["area_dollars"].sum() == 2e6           # the SBIR award is not public until February 2020
+    ex = exposure(aw, pd.Timestamp("2020-07-01"), STAGE_CFG)
+    assert ex["area_dollars"].sum() == 3.5e6

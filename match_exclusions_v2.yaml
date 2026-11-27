@@ -1,0 +1,11 @@
+# Stage 2, version 2: companies left out of the backtest
+# Author: Tov Binyamin Brog
+#
+# Each entry is a public company that the automatic rules matched to award
+# recipients that are a different business (a shared or former name). The list
+# is written from data and SEC descriptions only, before any version 2 return
+# is computed, and is frozen with the date below. Changing it after the
+# backtest runs starts version 3.
+
+frozen: null
+exclude: []

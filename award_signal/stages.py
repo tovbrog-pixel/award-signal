@@ -41,7 +41,8 @@ def company_awards(raw: pd.DataFrame, index: dict[str, dict], areas: dict[str, l
 def exposure(awards: pd.DataFrame, date: pd.Timestamp, cfg: dict) -> pd.DataFrame:
     """Company x area exposure from awards dated in the 3 years before `date`."""
     s = cfg["stages"]
-    w = awards[(awards["action_date"] < date) &
+    seen = awards["available_date"] if "available_date" in awards.columns else awards["action_date"]
+    w = awards[(awards["action_date"] < date) & (seen < date) &
                (awards["action_date"] >= date - pd.DateOffset(years=int(s["lookback_years"])))]
     if w.empty:
         return pd.DataFrame(columns=["key", "ticker", "cik", "delisting_date", "area", "area_dollars",
@@ -164,3 +165,17 @@ def random_area_placebo(pos: pd.DataFrame, signals: pd.DataFrame, cfg: dict) -> 
     return {"companies": int(len(real)), "actual_mean_net_excess": actual,
             "placebo_mean": float(dist.mean()), "share_of_placebos_beaten": float((dist < actual).mean()),
             "passes_95pct": bool((dist < actual).mean() >= 0.95)}
+
+
+def company_awards_v2(sources: pd.DataFrame, matches: pd.DataFrame, areas: dict[str, list[str]]) -> pd.DataFrame:
+    """Version 2 award rows: every source, every usable match, area tags on the cleaned text.
+    A company is keyed by CIK, so its divisions and subsidiaries pool into one history."""
+    m = matches[["recipient_name", "ticker", "cik", "delisting_date", "match_type", "valid_from", "valid_until"]]
+    df = sources.merge(m, on="recipient_name", how="inner")
+    df = df[(df["action_date"] >= pd.to_datetime(df["valid_from"])) &
+            (df["action_date"] < pd.to_datetime(df["valid_until"]))].copy()
+    df["key"] = df["cik"].astype(int).astype(str)
+    df["areas"] = tag_areas(df["text"].fillna(""), areas)
+    df["delisting_date"] = pd.to_datetime(df["delisting_date"], errors="coerce")
+    return df[["key", "ticker", "cik", "delisting_date", "action_date", "available_date", "amount", "areas",
+               "recipient_name", "source", "match_type"]].reset_index(drop=True)

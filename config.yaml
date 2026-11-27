@@ -31,6 +31,15 @@ stages:
   exposure_min_dollars: 7500000  # ... and at least one announcement's worth ($7.5M) in the area
   hold_days: 252                 # about 12 months of trading sessions
   min_positive_share: 0.6        # yearly test: at least 60% of completed years beat IWM
+  # Version 2 (backtest --rules v2), frozen 2026-11-27 before any v2 return was computed.
+  # The thresholds above stay the same. What changes is how much award history each
+  # company gets (award_signal/widen.py and award_signal/match2.py hold the exact rules):
+  #   - announcements tagged on the full paragraph, minus the contracting-office, funds
+  #     and work-location sentences
+  #   - SAM.gov DoD award notices from $100,000 to $7.5M, and DoD SBIR/STTR awards under
+  #     $7.5M (counted as public 365 days after award)
+  #   - matching adds division names, dated former names and Exhibit 21 subsidiaries
+  #   - companies listed in match_exclusions_v2.yaml are left out (reviewed blind to returns)
 
 announcements:
   amount: face                   # face (announced value) | obligated (dollars obligated at award)

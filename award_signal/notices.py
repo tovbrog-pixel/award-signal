@@ -52,7 +52,13 @@ CORP_SUFFIX_RE = r"(?:,?\s*(?:inc|incorporated|corp|corporation|co|company|llc|l
 
 
 def filter_year(fy: int, out_path: Path, session, log=print) -> int:
-    """Stream one fiscal-year archive and keep the sole-source and intent rows."""
+    """Stream one fiscal-year archive; keep the sole-source and intent rows, and (stage 2,
+    version 2) the DoD award notices from $100,000 up to $7.5M in FYxxxx_awards.csv."""
+    from .widen import SAM_AWARD_KEEP, keep_award_notice
+
+    award_path = out_path.with_name(f"FY{fy}_awards.csv")
+    award_tmp = award_path.with_suffix(".part")
+    awards_kept = 0
     url = ARCHIVE_URL.format(fy=fy)
     csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
     kept = seen = 0
@@ -62,11 +68,19 @@ def filter_year(fy: int, out_path: Path, session, log=print) -> int:
         resp.raw.decode_content = True
         text = io.TextIOWrapper(resp.raw, encoding="utf-8", errors="replace", newline="")
         reader = csv.DictReader(text)
-        with tmp.open("w", encoding="utf-8", newline="") as fh:
+        with tmp.open("w", encoding="utf-8", newline="") as fh, \
+                award_tmp.open("w", encoding="utf-8", newline="") as afh:
             writer = csv.DictWriter(fh, fieldnames=KEEP)
             writer.writeheader()
+            awriter = csv.DictWriter(afh, fieldnames=SAM_AWARD_KEEP)
+            awriter.writeheader()
             for row in reader:
                 seen += 1
+                if keep_award_notice(row):
+                    rec = {k: row.get(k, "") for k in SAM_AWARD_KEEP}
+                    rec["Description"] = (rec["Description"] or "")[:500]
+                    awriter.writerow(rec)
+                    awards_kept += 1
                 if (row.get("Type") or "").lower().startswith("award"):
                     continue
                 desc = (row.get("Description") or "")[:6000]
@@ -78,7 +92,8 @@ def filter_year(fy: int, out_path: Path, session, log=print) -> int:
                 if seen % 200_000 == 0:
                     log(f"    FY{fy}: {seen:,} notices read, {kept:,} kept")
     tmp.replace(out_path)
-    log(f"  FY{fy}: {seen:,} notices, {kept:,} sole-source or intent notices")
+    award_tmp.replace(award_path)
+    log(f"  FY{fy}: {seen:,} notices, {kept:,} sole-source or intent notices, {awards_kept:,} DoD award notices")
     return kept
 
 

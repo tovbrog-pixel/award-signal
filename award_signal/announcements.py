@@ -110,7 +110,7 @@ def parse_paragraph(text: str) -> list[dict] | None:
         "multi_award": multi,
         "small_business": "*" in seg[: seg.find(",") + 3] if "," in seg else "*" in seg,
         "contract_number": contract.group(1) if contract else None,
-        "description": text[:300],
+        "description": text,  # full paragraph (v1 kept the first 300 characters)
     } for n, seg in zip(names, segments if len(segments) == len(names) else [head] * len(names))]
 
 
