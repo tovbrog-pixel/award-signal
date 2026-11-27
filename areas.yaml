@@ -1,15 +1,15 @@
 # Technology areas for the rising-area detector
 # Author: Tov Binyamin Brog
 #
-# DRAFT, 2026-11-27. This list must be reviewed and frozen (dated) before any
-# backtest runs, and not edited afterward without starting a new version.
-# Freezing it first is what keeps hindsight from choosing the winners.
+# FROZEN 2026-11-27 (version 1), before any backtest ran, at Tov's direction.
+# Do not edit this version. Any change starts version 2 and a new backtest.
+# Freezing the list first is what keeps hindsight from choosing the winners.
 #
 # Each area lists keywords matched, case-insensitive, against budget line
 # titles (R-1 program element titles and P-1 line item titles). A line can
 # count toward more than one area.
 
-version: draft-2026-11-27
+version: v1-2026-11-27
 
 areas:
   unmanned_autonomy:
@@ -39,7 +39,8 @@ areas:
   space:
     - space
     - satellite
-    - launch
+    - space launch
+    - launch vehicle
     - orbital
   missile_defense:
     - missile defense
@@ -93,7 +94,6 @@ areas:
     - advanced manufacturing
     - additive manufacturing
     - critical mineral
-    - stockpile
   undersea:
     - undersea
     - unmanned underwater
