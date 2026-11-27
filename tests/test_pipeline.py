@@ -268,3 +268,5 @@ def test_one_word_names_need_review():
     tickers = pd.DataFrame({"cik": [5], "ticker": ["NVMI"], "sec_title": ["NOVA LTD."]})
     cand = build_candidates(pd.Series(["NOVA GROUP, INC."]), tickers)
     assert cand["confirmed"].iloc[0] == "" and "one-word" in cand["note"].iloc[0]
+    t2 = pd.DataFrame({"cik": [7], "ticker": ["AVAV"], "sec_title": ["AeroVironment Inc"]})
+    assert build_candidates(pd.Series(["AEROVIRONMENT, INC."]), t2)["confirmed"].iloc[0] == "Y"
