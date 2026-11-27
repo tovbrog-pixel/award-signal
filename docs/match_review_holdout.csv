@@ -1,0 +1,246 @@
+cik,ticker,dollars,awards,sources,match_types,recipient_names,name,sic,sic_description
+936468,LMT,226533550221.45,1509,usaspending,"exact, prefix","LOCKHEED MARTIN ACULIGHT CORPORATION | LOCKHEED MARTIN COHERENT TECHNOLOGIES, INC. | LOCKHEED MARTIN CORP | LOCKHEED MARTIN CORPORATION | LOCKHEED MARTIN GLOBAL, INC | LOCKHEED MARTIN GLOBAL, INC.",LOCKHEED MARTIN CORP,3760,Guided Missiles & Space Vehicles & Parts
+12927,BA,190589356140.4,991,usaspending,"exact, prefix","BOEING AEROSPACE OPERATIONS, INC | BOEING AEROSPACE OPERATIONS, INC. | BOEING COMPANY, THE | BOEING COMPANY, THE (INC) | BOEING DEFENCE AUSTRALIA LTD | BOEING DISTRIBUTION, INC.",BOEING CO,3721,Aircraft
+1133421,NOC,79322602978.99,1223,usaspending,prefix,"NORTHROP GRUMMAN COBHAM INTERCOMS, LLC | NORTHROP GRUMMAN DEFENSE MISSION SYSTEMS, INC. | NORTHROP GRUMMAN ENTERPRISE MANAGEMENT SERVICES CORPORATION | NORTHROP GRUMMAN INFORMATION TECHNOLOGY INC | NORTHROP GRUMMAN ITALIA S.P.A | NORTHROP GRUMMAN PRB SYSTEMS, INC.",NORTHROP GRUMMAN CORP /DE/,3812,"Search, Detection, Navigation, Guidance, Aeronautical Sys"
+40533,GD,53425544193.12,1195,usaspending,prefix,"GENERAL DYNAMICS ADVANCED INFORMATION SYSTEMS, INC. | GENERAL DYNAMICS C4 SYSTEMS, INC. | GENERAL DYNAMICS EUROPEAN LAND SYSTEMS-BRIDGE SYSTEMS GMBH | GENERAL DYNAMICS GLOBAL FORCE, LLC | GENERAL DYNAMICS INFORMATION TECHNOLOGY INC. | GENERAL DYNAMICS INFORMATION TECHNOLOGY, INC",GENERAL DYNAMICS CORP,3730,Ship & Boat Building & Repairing
+775158,OSK,29314484393.93,160,usaspending,"exact, prefix",OSHKOSH CORP | OSHKOSH DEFENSE LLC,OSHKOSH CORP,3711,Motor Vehicles & Passenger Car Bodies
+202058,LHX,25039199266.34,813,usaspending,"exact, prefix","L3HARRIS TECHNOLOGIES INTEGRATED SYSTEMS L.P. | L3HARRIS TECHNOLOGIES, INC | L3HARRIS TECHNOLOGIES, INC.","L3HARRIS TECHNOLOGIES, INC. /DE/",3812,"Search, Detection, Navigation, Guidance, Aeronautical Sys"
+1336920,LDOS,20650698626.29,549,usaspending,"exact, prefix","LEIDOS ASPEN SYSTEMS CORP | LEIDOS ASPENMED SERVICES LLC | LEIDOS ENGINEERING LLC | LEIDOS GOVERNMENT SERVICES, INC. | LEIDOS INC | LEIDOS INTEGRATED TECHNOLOGY LLC","Leidos Holdings, Inc.",7373,Services-Computer Integrated Systems Design
+1443646,BAH,16539724933.56,687,usaspending,"exact, prefix","BOOZ ALLEN HAMILTON ENGINEERING SERVICES, LLC | BOOZ ALLEN HAMILTON INC | BOOZ ALLEN HAMILTON INC.",Booz Allen Hamilton Holding Corp,8742,Services-Management Consulting Services
+1571123,SAIC,15776723682.51,301,usaspending,exact,SCIENCE APPLICATIONS INTERNATIONAL CORPORATION,Science Applications International Corp,7373,Services-Computer Integrated Systems Design
+217346,TXT,11330891654.72,78,usaspending,"prefix, subsidiary",CESSNA AIRCRAFT COMPANY | TEXTRON AVIATION DEFENSE LLC | TEXTRON AVIATION INC | TEXTRON SYSTEMS CORP | TEXTRON SYSTEMS CORPORATION,TEXTRON INC,3720,Aircraft & Parts
+866121,ATK,9718650159.94,123,usaspending,prefix,ALLIANT TECHSYSTEMS OPERATIONS LLC,"Northrop Grumman Innovation Systems, Inc.",3760,Guided Missiles & Space Vehicles & Parts
+789460,WKC,4934331794.21,27,usaspending,"exact, prefix","WORLD FUEL SERVICES (SINGAPORE) PTE LTD | WORLD FUEL SERVICES AMERICAS INC | WORLD FUEL SERVICES COMPANY, LLC SUCURSAL COLOMBIA | WORLD FUEL SERVICES EUROPE, LTD. | WORLD FUEL SERVICES TRADING FZCO | WORLD FUEL SERVICES, INC.",WORLD KINECT CORP,5172,Wholesale-Petroleum & Petroleum Products (No Bulk Stations)
+1137411,COL,4666758520.85,141,usaspending,"exact, prefix","ROCKWELL COLLINS INC | ROCKWELL COLLINS NETWORK ENABLING SOFTWARE, INC. | ROCKWELL COLLINS SIMULATION & TRAINING SOLUTIONS LLC | ROCKWELL COLLINS, INC.",ROCKWELL COLLINS INC,3728,"Aircraft Parts & Auxiliary Equipment, NEC"
+773840,HON,3767009068.64,104,usaspending,exact,"HONEYWELL INTERNATIONAL INC | HONEYWELL INTERNATIONAL INC. | HONEYWELL INTERNATIONAL, INC",HONEYWELL INTERNATIONAL INC,3724,Aircraft Engines & Engine Parts
+1806837,VERX,3132816423.06,46,usaspending,prefix,VERTEX AEROSPACE LLC | VERTEX AIRCRAFT INTEGRATION AND SUSTAINMENT LLC | VERTEX MODERNIZATION AND SUSTAINMENT LLC,"Vertex, Inc.",7372,Services-Prepackaged Software
+275880,PSN,2782123583.4900002,83,usaspending,prefix,PARSONS GOVERNMENT SERVICES INC | PARSONS GOVERNMENT SERVICES INC. | PARSONS GOVERNMENT SERVICES INTERNATIONAL INC. | PARSONS GOVERNMENT SUPPORT SERVICES INC,PARSONS CORP,7373,Services-Computer Integrated Systems Design
+1506721,BLFBY,2618658060.3500004,24,usaspending,prefix,"BALFOUR BEATTY CONSTRUCTION, LLC | BALFOUR BEATTY INFRASTRUCTURE, INC. | BALFOUR BEATTY/DPR/BIG-D, A JOINT VENTURE | BALFOUR BEATTY/MCCARTHY A JOINT VENTURE",Balfour Beatty plc/ADR,,
+1467373,ACN,2465618664.87,69,usaspending,"exact, prefix",ACCENTURE FEDERAL SERVICES LLC | ACCENTURE LLP,Accenture plc,7389,"Services-Business Services, NEC"
+93410,CVX,2264928848.77,31,usaspending,"exact, prefix",CHEVRON AL KHALIJ | CHEVRON AUSTRALIA DOWNSTREAM FUELS PTY LTD | CHEVRON USA INC.,CHEVRON CORP,2911,Petroleum Refining
+51143,IBM,2195716600.26,81,usaspending,exact,INTERNATIONAL BUSINESS MACHINES CORPORATION,INTERNATIONAL BUSINESS MACHINES CORP,3570,Computer & office Equipment
+18230,CAT,1531596193.16,68,usaspending,exact,"CATERPILLAR INC | CATERPILLAR INC. | CATERPILLAR, INC",CATERPILLAR INC,3531,Construction Machinery & Equip
+80424,PG,1494941675.6299999,23,usaspending,prefix,THE PROCTER & GAMBLE DISTRIBUTING LLC,PROCTER & GAMBLE Co,2840,"Soap, Detergents, Cleang Preparations, Perfumes, Cosmetics"
+1166003,XPO,1394623840.54,67,usaspending,prefix,"XPO LOGISTICS WORLDWIDE GOVERNMENT SERVICES, LLC","XPO, Inc.",4700,Transportation Services
+1163165,COP,1268352663.52,5,usaspending,exact,CONOCOPHILLIPS COMPANY,CONOCOPHILLIPS,2911,Petroleum Refining
+931015,PII,1195331504.28,55,usaspending,prefix,"POLARIS ALPHA ADVANCED SYSTEMS INC | POLARIS ALPHA, LLC | POLARIS SALES INC",Polaris Inc.,3790,Miscellaneous Transportation Equipment
+98362,TKR,1037142601.0,2,usaspending,prefix,TIMKEN GEARS & SERVICES INC.,TIMKEN CO,3562,Ball & Roller Bearings
+1067318,MBGAF,1028634707.6500001,14,usaspending,prefix,DAIMLER TRUCK NORTH AMERICA LLC,DAIMLER AG,3711,Motor Vehicles & Passenger Car Bodies
+797721,VSAT,1014931483.63,109,"sbir, usaspending",exact,"VIASAT INC | VIASAT, INC.",VIASAT INC,4899,"Communications Services, NEC"
+831641,TTEK,1000493118.5,65,"sbir, usaspending","exact, prefix","TETRA TECH EC, INC. | TETRA TECH EMC, INC. | TETRA TECH FACILITIES CONSTRUCTION, LLC | TETRA TECH INC | TETRA TECH TESORO, INC. | TETRA TECH, INC.",TETRA TECH INC,8711,Services-Engineering Services
+40704,GIS,870347728.0,44,usaspending,exact,GENERAL MILLS INC,GENERAL MILLS INC,2040,Grain Mill Products
+26172,CMI,860519506.1,33,usaspending,"exact, prefix","CUMMINS CENTRAL POWER, LLC | CUMMINS INC. | CUMMINS POWER GENERATION INC.",CUMMINS INC,3510,Engines & Turbines
+1709048,GFS,816516427.74,1,usaspending,prefix,GLOBALFOUNDRIES U.S. 2 LLC,GLOBALFOUNDRIES Inc.,3674,Semiconductors & Related Devices
+861459,GVA,737872819.96,19,usaspending,exact,GRANITE CONSTRUCTION COMPANY,GRANITE CONSTRUCTION INC,1600,Heavy Construction Other Than Bldg Const - Contractors
+77543,TPC,641059611.9599999,16,usaspending,exact,TUTOR PERINI CORPORATION,TUTOR PERINI CORP,1540,General Bldg Contractors - Nonresidential Bldgs
+1368622,AVAV,592601870.62,66,"sbir, usaspending",exact,"AEROVIRONMENT, INC.",AeroVironment Inc,3721,Aircraft
+1601548,VVX,589253089.82,6,usaspending,prefix,VECTRUS FEDERAL SERVICES GMBH | VECTRUS SERVICES A/S | VECTRUS SYSTEMS CORPORATION | VECTRUS SYSTEMS LLC,"V2X, Inc.",8744,Services-Facilities Support Management Services
+100493,TSN,564953285.41,37,usaspending,exact,TYSON FOODS INC.,"TYSON FOODS, INC.",2015,Poultry Slaughtering and Processing
+858877,CSCO,545930916.88,6,usaspending,exact,CISCO SYSTEMS INC,"CISCO SYSTEMS, INC.",3576,Computer Communications Equipment
+1570585,LBTYA,522849703.81,32,usaspending,prefix,LIBERTY GLOBAL LOGISTICS LLC,Liberty Global Ltd.,4841,Cable & Other Pay Television Services
+789019,MSFT,510296692.96,30,usaspending,exact,MICROSOFT CORPORATION,MICROSOFT CORP,7372,Services-Prepackaged Software
+73756,OII,486053709.33000004,19,usaspending,exact,"OCEANEERING INTERNATIONAL INC | OCEANEERING INTERNATIONAL, INC.",OCEANEERING INTERNATIONAL INC,1389,"Oil & Gas Field Services, NEC"
+1116132,TPR,469595037.1,13,usaspending,prefix,"TAPESTRY SOLUTIONS, INC. | TAPESTRY TECHNOLOGIES, INC.","TAPESTRY, INC.",3100,Leather & Leather Products
+746838,UIS,468306879.15999997,13,usaspending,exact,UNISYS CORPORATION,UNISYS CORP,7373,Services-Computer Integrated Systems Design
+1534701,PSX,421608883.73,9,usaspending,exact,PHILLIPS 66 COMPANY,Phillips 66,2911,Petroleum Refining
+866829,HOS,418608877.29999995,3,usaspending,exact,HORNBECK OFFSHORE SERVICES LLC,"HORNBECK OFFSHORE SERVICES, INC.",1389,"Oil & Gas Field Services, NEC"
+1321655,PLTR,395039409.28999996,7,usaspending,exact,PALANTIR TECHNOLOGIES INC.,Palantir Technologies Inc.,7372,Services-Prepackaged Software
+18926,LUMN,376942114.28999996,6,usaspending,prefix,"LUMEN TECHNOLOGIES GOVERNMENT SOLUTIONS, INC | LUMEN TECHNOLOGIES GOVERNMENT SOLUTIONS, INC.","Lumen Technologies, Inc.",4813,Telephone Communications (No Radiotelephone)
+1411207,ALSN,359448489.22,13,usaspending,exact,"ALLISON TRANSMISSION INC | ALLISON TRANSMISSION, INC.",Allison Transmission Holdings Inc,3714,Motor Vehicle Parts & Accessories
+68505,MSI,353640827.18,19,usaspending,exact,"MOTOROLA SOLUTIONS, INC.","Motorola Solutions, Inc.",3663,Radio & Tv Broadcasting & Communications Equipment
+1181412,SPCX,337311924.97,3,usaspending,exact,SPACE EXPLORATION TECHNOLOGIES CORP.,SPACE EXPLORATION TECHNOLOGIES CORP,7370,"Services-Computer Programming, Data Processing, Etc."
+55785,KMB,333457136.87,21,usaspending,exact,KIMBERLY-CLARK CORPORATION,KIMBERLY CLARK CORP,2670,Converted Paper & Paperboard Prods (No Contaners/Boxes)
+47217,HPQ,309478013.15,9,usaspending,prefix,"HEWLETT-PACKARD FEDERAL, LLC",HP INC,3570,Computer & office Equipment
+16732,CPB,306252295.88,21,usaspending,exact,CAMPBELL SOUP COMPANY,CAMPBELL'S Co,2000,Food and Kindred Products
+91419,SJM,304768255.01,18,usaspending,exact,THE J. M. SMUCKER COMPANY,J M SMUCKER Co,2033,"Canned, Fruits, Veg, Preserves, Jams & Jellies"
+1283699,TMUS,252633496.65999997,2,usaspending,prefix,T-MOBILE SECURE FEDERAL OPERATIONS LLC,"T-Mobile US, Inc.",4812,Radiotelephone Communications
+2028707,MRLN,245639964.71,7,usaspending,prefix,"MERLIN INTERNATIONAL, INC. | MERLIN PETROLEUM CO INC","Merlin, Inc.",7373,Services-Computer Integrated Systems Design
+1488139,AMRC,219795022.16,9,"sbir, usaspending","exact, prefix, subsidiary","AMERESCO INC | AMERESCO SELECT, INC. | Sierra Energy","Ameresco, Inc.",1700,Construction - Special Trade Contractors
+1094285,TDY,214842561.45,8,usaspending,subsidiary,"TELEDYNE BROWN ENGINEERING, INC. | TELEDYNE INSTRUMENTS, INC. | TELEDYNE SCIENTIFIC & IMAGING, LLC",TELEDYNE TECHNOLOGIES INC,3812,"Search, Detection, Navigation, Guidance, Aeronautical Sys"
+200406,JNJ,200699100.94,17,usaspending,prefix,JOHNSON & JOHNSON CONSUMER COM | JOHNSON & JOHNSON SALES AND LOGISTICS COMPANY LLC,JOHNSON & JOHNSON,2834,Pharmaceutical Preparations
+1971213,SBGI,189136872.89000002,7,usaspending,prefix,SINCLAIR OIL CORPORATION,"Sinclair, Inc.",4833,Television Broadcasting Stations
+1402829,ORN,182886369.98000002,12,usaspending,"prefix, subsidiary","ORION CONSTRUCTION CORPORATION | ORION CONSTRUCTION, LLC | ORION MARINE CONSTRUCTION, INC. | ORION MARINE CONTRACTORS, INC.",Orion Group Holdings Inc,1600,Heavy Construction Other Than Bldg Const - Contractors
+1420798,RBGLY,181874779.1,17,usaspending,exact,RECKITT BENCKISER LLC,RECKITT BENCKISER GROUP PLC,,
+1341439,ORCL,175345366.53,11,usaspending,"exact, prefix","ORACLE AMERICA, INC | ORACLE AMERICA, INC. | ORACLE USA, INC.",ORACLE CORP,7372,Services-Prepackaged Software
+26537,STST,170461380.3,10,usaspending,exact,"ARGON ST, INC.","ARGON ST, Inc.",3829,"Measuring & Controlling Devices, NEC"
+803647,VSR,164798878.82,12,"sbir, usaspending",exact,"VERSAR, INC. | Versar Inc.",VERSAR INC,8711,Services-Engineering Services
+709283,QMCO,162665440.14000002,16,"sbir, usaspending","exact, prefix","QUANTUM GROUP, INC. | QUANTUM RESEARCH INTERNATIONAL INC",QUANTUM CORP /DE/,3572,Computer Storage Devices
+1670076,ULCC,160558306.77,150,"sbir, usaspending",prefix,"FRONTIER ELECTRONIC SYSTEMS CORP | FRONTIER SERVICES, INC. | FRONTIER SYSTEMS INTEGRATOR, LLC | FRONTIER TECHNOLOGY INC","Frontier Group Holdings, Inc.",4512,"Air Transportation, Scheduled"
+76334,PH,157207719.21,11,usaspending,exact,PARKER-HANNIFIN CORPORATION,Parker-Hannifin Corp,3490,Miscellaneous Fabricated Metal Products
+1524471,XLS,153487373.25,9,usaspending,"prefix, subsidiary","EDO PROFESSIONAL SERVICES INC. | EXELIS INC./NORTHROP GRUMMAN, A JOINT VENTURE | EXELIS SYSTEMS CORPORATION | MANU KAI LLC",Exelis Inc.,3669,"Communications Equipment, NEC"
+108312,WWD,152611542.01,11,usaspending,"exact, prefix","WOODWARD HRT, INC. | WOODWARD, INC.","Woodward, Inc.",3620,Electrical Industrial Apparatus
+63754,MKC,146543695.87,15,usaspending,exact,MCCORMICK & COMPANY INC,MCCORMICK & CO INC,2090,Miscellaneous Food Preparations & Kindred Products
+21076,CLX,145587066.92,16,usaspending,exact,CLOROX CO,CLOROX CO /DE/,2842,"Specialty Cleaning, Polishing and Sanitation Preparations"
+355811,GNTX,136851221.0,10,usaspending,exact,GENTEX CORP | GENTEX CORPORATION,GENTEX CORP,3714,Motor Vehicle Parts & Accessories
+732717,T,131914444.77,1,usaspending,exact,AT&T CORP.,AT&T INC.,4813,Telephone Communications (No Radiotelephone)
+50725,GFF,127488101.46000001,2,usaspending,prefix,"GRIFFON AEROSPACE, INC.",GRIFFON CORP,3442,"Metal Doors, Sash, Frames, Moldings & Trim"
+873303,SRPT,126425647.69,3,usaspending,exact,"SAREPTA THERAPEUTICS, INC.","Sarepta Therapeutics, Inc.",2834,Pharmaceutical Preparations
+887225,KEP,115152029.65,12,usaspending,exact,KOREA ELECTRIC POWER CORP | KOREA ELECTRIC POWER CORPORATION,KOREA ELECTRIC POWER CORP,4911,Electric Services
+1868275,CEG,105063720.59,3,usaspending,prefix,"CONSTELLATION ENERGY GAS CHOICE, LLC | CONSTELLATION ENERGY SOLUTIONS, LLC",Constellation Energy Corp,4911,Electric Services
+97210,TER,104651299.81,6,usaspending,exact,"TERADYNE, INC.","TERADYNE, INC",3825,Instruments For Meas & Testing of  Electricity & Elec Signals
+41091,GPJA,104476753.22,5,usaspending,exact,GEORGIA POWER COMPANY,GEORGIA POWER CO,4911,Electric Services
+1131383,STN,102479234.36,4,usaspending,prefix,STANTEC CONSULTING SERVICES INC.,STANTEC INC,8711,Services-Engineering Services
+47111,HSY,101346965.47999999,12,usaspending,exact,HERSHEY COMPANY (THE),HERSHEY CO,2060,Sugar & Confectionery Products
+1506307,KMI,96773262.58,2,usaspending,prefix,KINDER MORGAN LIQUIDS TERMINALS LLC | KINDER MORGAN TANK STORAGE TERMINALS LLC,"KINDER MORGAN, INC.",4922,Natural Gas Transmission
+1645590,HPE,95178796.78,4,usaspending,exact,HEWLETT PACKARD ENTERPRISE COMPANY,Hewlett Packard Enterprise Co,3570,Computer & office Equipment
+808326,EMKR,85434549.88,43,"sbir, usaspending","exact, prefix",EMCORE CHICAGO INERTIAL CORPORATION | EMCORE CORP. | EMCORE SPACE & NAVIGATION LLC,EMCORE CORP,3674,Semiconductors & Related Devices
+8063,ATRO,84264054.06,4,usaspending,prefix,ASTRONICS TEST SYSTEMS INC,ASTRONICS CORP,3728,"Aircraft Parts & Auxiliary Equipment, NEC"
+66570,MSA,83731798.52,7,usaspending,exact,"MINE SAFETY APPLIANCES COMPANY | MINE SAFETY APPLIANCES COMPANY, LLC",MSA Safety Inc,3842,"Orthopedic, Prosthetic & Surgical Appliances & Supplies"
+31107,EML,77510083.12,8,usaspending,prefix,"EASTERN CONSTRUCTION & ELECTRIC INC | EASTERN GCR, LLC | EASTERN GENERAL CONTRACTORS INC",EASTERN CO,3420,"Cutlery, Handtools & General Hardware"
+1441683,APPN,67442714.73,3,usaspending,exact,APPIAN CORPORATION,APPIAN CORP,7372,Services-Prepackaged Software
+1027664,ESLT,67168995.0,3,usaspending,prefix,ELBIT SYSTEMS BMD AND LAND EW - ELISRA LTD | ELBIT SYSTEMS ELECTRO-OPTICS ELOP LTD,ELBIT SYSTEMS LTD,3728,"Aircraft Parts & Auxiliary Equipment, NEC"
+92679,SPA,59688911.53,3,usaspending,prefix,"SPARTON DELEON SPRINGS, LLC",SPARTON CORP,3672,Printed Circuit Boards
+820318,COHR,59240779.24,16,"sbir, usaspending",prefix,"COHERENT TECHNICAL SERVICES, INC.",COHERENT CORP.,3827,Optical Instruments & Lenses
+1348952,ELC,58040806.23,1,usaspending,exact,"ENTERGY LOUISIANA, LLC","ENTERGY LOUISIANA, LLC",4911,Electric Services
+78460,PNY,57379067.36,2,usaspending,exact,"PIEDMONT NATURAL GAS COMPANY, INC.",PIEDMONT NATURAL GAS CO INC,4924,Natural Gas Distribution
+1376986,TVE,56734688.06,1,usaspending,exact,TENNESSEE VALLEY AUTHORITY,Tennessee Valley Authority,4911,Electric Services
+1447028,ABUS,52187135.45,1,usaspending,exact,ARBUTUS BIOPHARMA CORPORATION,Arbutus Biopharma Corp,2834,Pharmaceutical Preparations
+816159,AIRM,51699508.57,4,usaspending,exact,"AIR METHODS, LLC",AIR METHODS CORP,4522,"Air Transportation, Nonscheduled"
+1015650,SKM,44007733.0,1,usaspending,exact,"SK TELECOM CO.,LTD.",SK TELECOM CO LTD,4812,Radiotelephone Communications
+1964738,SOLV,43776133.22,2,usaspending,prefix,"SOLVENTUM HEALTH INFORMATION SYSTEMS, INC.",Solventum Corp,3841,Surgical & Medical Instruments & Apparatus
+313616,DHR,41650250.31,3,usaspending,prefix,"DANAHER TOOL GROUP, EASCO HAND",DANAHER CORP /DE/,3823,"Industrial Instruments For Measurement, Display, and Control"
+1001902,IVAC,41130117.769999996,9,"sbir, usaspending","exact, prefix","INTEVAC PHOTONICS INC | INTEVAC, INC. | Intevac, Inc.",INTEVAC INC,3559,"Special Industry Machinery, NEC"
+92103,SCE-PM,40500000.0,3,usaspending,"exact, prefix",SOUTHERN CALIFORNIA EDISON COM | SOUTHERN CALIFORNIA EDISON COMPANY,SOUTHERN CALIFORNIA EDISON Co,4911,Electric Services
+1021635,OGE,40021237.89,1,usaspending,exact,OGE ENERGY CORP,OGE ENERGY CORP.,4911,Electric Services
+3153,ALP-P-Q,38216345.11,4,usaspending,exact,ALABAMA POWER COMPANY,ALABAMA POWER CO,4911,Electric Services
+23082,CSC,36150328.34,2,"sbir, usaspending","exact, prefix",COMPUTER SCIENCES CORPORATION | Computer Sciences Applications,COMPUTER SCIENCES CORP,7373,Services-Computer Integrated Systems Design
+1289308,ENS,35687777.480000004,4,usaspending,prefix,ENERSYS ENERGY PRODUCTS INC.,EnerSys,3690,"Miscellaneous Electrical Machinery, Equipment & Supplies"
+864749,TRMB,35258080.44,3,usaspending,exact,TRIMBLE INC,TRIMBLE INC.,3829,"Measuring & Controlling Devices, NEC"
+2071489,YSGL,35076002.69,3,usaspending,prefix,YELLOWSTONE ELECTRIC CO,Yellowstone Group Ltd.,8742,Services-Management Consulting Services
+70415,GPX,33694623.19,3,usaspending,exact,GP STRATEGIES CORPORATION,GP STRATEGIES CORP,8200,Services-Educational Services
+785786,PLXS,31830940.36,2,usaspending,prefix,PLEXUS SCIENTIFIC CORPORATION,PLEXUS CORP,3672,Printed Circuit Boards
+1800,ABT,31497180.28,1,usaspending,exact,ABBOTT LABORATORIES INC.,ABBOTT LABORATORIES,2834,Pharmaceutical Preparations
+816761,TDC,30554899.77,2,usaspending,prefix,"TERADATA OPERATIONS, INC.",TERADATA CORP /DE/,7372,Services-Prepackaged Software
+749251,IT,29848767.759999998,3,usaspending,exact,"GARTNER, INC.",GARTNER INC,8741,Services-Management Services
+1904501,ZTEKF,29574389.65,1,usaspending,prefix,"ZENTEK CONSULTING, INC.",Zentek Ltd.,2890,Miscellaneous Chemical Products
+1006837,VATE,29023545.22,1,usaspending,prefix,"INNOVATE INTERNATIONAL INTELLIGENCE AND INTEGRATION, LLC",INNOVATE Corp.,3440,Fabricated Structural Metal Products
+110471,WWW,27225897.299999997,2,usaspending,exact,WOLVERINE WORLD WIDE INC,WOLVERINE WORLD WIDE INC /DE/,3140,"Footwear, (No Rubber)"
+702165,NSC,27095521.07,2,usaspending,"exact, prefix",NORFOLK SOUTHERN CORP | NORFOLK SOUTHERN RAILWAY COMPANY,NORFOLK SOUTHERN CORP,4011,"Railroads, Line-Haul Operating"
+1916416,INTJ,25915831.5,1,usaspending,prefix,"INTELLIGENT ENTERPRISE SOLUTIONS, LLC",Intelligent Group Ltd,8742,Services-Management Consulting Services
+1124796,LASR,25047665.0,43,"sbir, usaspending","exact, prefix","NLIGHT DEFENSE SYSTEMS, INC. | nLight Photonics","NLIGHT, INC.",3674,Semiconductors & Related Devices
+704562,PPHM,24633972.0,1,usaspending,exact,"PEREGRINE PHARMACEUTICALS, INC.","Avid Bioservices, Inc.",2834,Pharmaceutical Preparations
+14930,BC,23592271.939999998,2,usaspending,prefix,"BRUNSWICK COMMERCIAL & GOVERNMENT PRODUCTS, INC. | BRUNSWICK ELECTRIC MEMBERSHIP CORPORATION",BRUNSWICK CORP,3510,Engines & Turbines
+1433660,JBTM,23393455.5,1,usaspending,exact,JOHN BEAN TECHNOLOGIES CORPORATION,JBT MAREL Corp,3550,Special Industry Machinery (No Metalworking Machinery)
+7323,EAI,23135990.11,1,usaspending,exact,"ENTERGY ARKANSAS, LLC","ENTERGY ARKANSAS, LLC",4911,Electric Services
+1130866,HITT,22697109.0,97,sbir,exact,Hittite Microwave Corporation,HITTITE MICROWAVE CORP,3674,Semiconductors & Related Devices
+879911,AERG,22168544.9,7,"sbir, usaspending",exact,"APPLIED ENERGETICS, INC | Applied Energetics, Inc.","APPLIED ENERGETICS, INC.",3812,"Search, Detection, Navigation, Guidance, Aeronautical Sys"
+109177,SPB,21999625.700000003,4,"sbir, usaspending",exact,"ZAPATA INCORPORATED | ZAPATA, INC.","Spectrum Brands Holdings, Inc.",3690,"Miscellaneous Electrical Machinery, Equipment & Supplies"
+84748,ROG,21243113.67,1,usaspending,prefix,"ROGERS, LOVELOCK & FRITZ, INC.",ROGERS CORP,2821,"Plastic Materials, Synth Resins & Nonvulcan Elastomers"
+1626644,ODYY,20406470.69,1,usaspending,exact,"ODYSSEY INTERNATIONAL, INC.","Odyssey Health, Inc.",3841,Surgical & Medical Instruments & Apparatus
+61986,MTW,19252667.22,2,usaspending,subsidiary,GROVE U.S. LLC,MANITOWOC CO INC,3531,Construction Machinery & Equip
+804753,CERN,19074309.75,1,usaspending,exact,CERNER CORPORATION,CERNER Corp,7373,Services-Computer Integrated Systems Design
+26324,CW,19041143.73,2,usaspending,prefix,"CURTISS-WRIGHT DS, INC. | CURTISS-WRIGHT FLOW CONTROL SERVICE CORPORATION",CURTISS WRIGHT CORP,3590,Misc Industrial & Commercial Machinery & Equipment
+792987,ASTE,18765412.13,2,usaspending,exact,ASTEC INDUSTRIES INC,ASTEC INDUSTRIES INC,3531,Construction Machinery & Equip
+1120970,LODE,17613941.0,1,usaspending,prefix,"COMSTOCK CONSTRUCTION, INC.",Comstock Inc.,2860,Industrial Organic Chemicals
+98222,TDW,17553772.57,1,usaspending,exact,"TIDEWATER, INC.",TIDEWATER INC,4400,Water Transportation
+1708055,RBBN,17415015.14,2,usaspending,prefix,RIBBON COMMUNICATIONS FEDERAL INC.,Ribbon Communications Inc.,7373,Services-Computer Integrated Systems Design
+1422109,BBLUQ,17101781.23,1,usaspending,prefix,BLUE EARTH MARKETING COMPANY,"Blue Earth, Inc.",4991,Cogeneration Services & Small Power Producers
+1427925,TLPH,17012744.49,1,usaspending,exact,"ACELRX PHARMACEUTICALS, INC.","TALPHERA, INC.",2834,Pharmaceutical Preparations
+21665,CL,16885999.84,2,usaspending,exact,COLGATE-PALMOLIVE COMPANY,COLGATE PALMOLIVE CO,2844,"Perfumes, Cosmetics & Other Toilet Preparations"
+1005210,SPH,16407939.19,1,usaspending,prefix,"SUBURBAN PROPANE PARTNERS, L.P",SUBURBAN PROPANE PARTNERS LP,5900,Retail-Miscellaneous Retail
+101830,S,16259081.459999999,2,usaspending,prefix,SPRINT COMMUNICATIONS CO LP,SPRINT LLC,4813,Telephone Communications (No Radiotelephone)
+1090727,UPS,14823657.64,1,usaspending,exact,UNITED PARCEL SERVICE CO.,UNITED PARCEL SERVICE INC,4210,Trucking & Courier Services (No Air)
+1145986,ASPN,14781456.0,37,sbir,exact,"ASPEN AEROGELS, INC.",ASPEN AEROGELS INC,5030,Wholesale-Lumber & Other Construction Materials
+1131399,GSK,13665941.64,1,usaspending,exact,"GLAXOSMITHKLINE, LLC",GSK plc,2834,Pharmaceutical Preparations
+1173514,HY,13171320.0,1,usaspending,exact,"HYSTER-YALE GROUP, INC.","HYSTER-YALE, INC.",3537,"Industrial Trucks, Tractors, Trailors & Stackers"
+1860805,ASTL,12704394.0,1,usaspending,exact,ALGOMA STEEL INC,Algoma Steel Group Inc.,3312,"Steel Works, Blast Furnaces & Rolling Mills (Coke Ovens)"
+1001907,ASTC,12505513.0,3,"sbir, usaspending","exact, prefix","ASTROTECH SPACE OPERATIONS, LLC | Astrotech Inc",ASTROTECH Corp,3826,Laboratory Analytical Instruments
+1033905,LMNX,12470137.0,3,"sbir, usaspending",exact,LUMINEX CORP | Luminex Corporation,LUMINEX CORP,3841,Surgical & Medical Instruments & Apparatus
+1555279,MASS,11896120.09,1,usaspending,exact,908 DEVICES INC,908 Devices Inc.,3826,Laboratory Analytical Instruments
+875657,ULBI,11343060.0,2,"sbir, usaspending",exact,"ULTRALIFE BATTERIES, INC. | ULTRALIFE CORP.",ULTRALIFE CORP,3690,"Miscellaneous Electrical Machinery, Equipment & Supplies"
+1136869,ZBH,10652255.4,1,usaspending,prefix,ZIMMER GUNSUL FRASCA ARCHITECTS LLP,"ZIMMER BIOMET HOLDINGS, INC.",3842,"Orthopedic, Prosthetic & Surgical Appliances & Supplies"
+1065860,LIME,10375704.71,1,usaspending,prefix,LIME ENERGY SERVICES CO.,LIME ENERGY CO.,1700,Construction - Special Trade Contractors
+731012,HCSG,10138465.13,1,usaspending,prefix,HEALTHCARE SERVICES OF NORTH AMERICA JV,HEALTHCARE SERVICES GROUP INC,8050,Services-Nursing & Personal Care Facilities
+33533,ESP,10128732.86,1,usaspending,exact,ESPEY MFG AND ELECTRONICS CORP,ESPEY MFG & ELECTRONICS CORP,3679,"Electronic Components, NEC"
+1351285,RST,10108079.91,1,usaspending,exact,ROSETTA STONE LLC,ROSETTA STONE INC,7372,Services-Prepackaged Software
+89270,SLI,9861528.0,1,usaspending,subsidiary,"SL MONTEVIDEO TECHNOLOGY, INC.",SL INDUSTRIES INC,3679,"Electronic Components, NEC"
+100517,UAL,9761096.94,1,usaspending,exact,"UNITED AIRLINES, INC.","United Airlines Holdings, Inc.",4512,"Air Transportation, Scheduled"
+1501585,HII,9475236.77,1,usaspending,exact,"HUNTINGTON INGALLS INDUSTRIES, INC","HUNTINGTON INGALLS INDUSTRIES, INC.",3730,Ship & Boat Building & Repairing
+880807,AMSC,9279539.0,34,sbir,exact,AMERICAN SUPERCONDUCTOR CORPORATION,AMERICAN SUPERCONDUCTOR CORP /DE/,3621,Motors & Generators
+1003642,IPXL,9180928.35,1,usaspending,exact,"IMPAX LABORATORIES, LLC","Impax Laboratories, LLC",2834,Pharmaceutical Preparations
+2027262,FTRKF,9119153.5,2,"sbir, usaspending",prefix,"FAST-TRACK DRUGS & BIOLOGICS, L.L.C. | Fast Track Amphibian LLC",Fast Track Group,7900,Services-Amusement & Recreation Services
+1178660,TUTH,8262642.96,1,usaspending,exact,"COSTAS GROUP, INC., THE",Standard Dental Labs Inc.,3843,Dental Equipment & Supplies
+851520,EXPO,8246582.54,1,usaspending,exact,EXPONENT INC,EXPONENT INC,8742,Services-Management Consulting Services
+1357671,CRTD,8205296.63,1,usaspending,prefix,GREAT PLAINS ENTERPRISES INC,"Creatd, Inc.",4522,"Air Transportation, Nonscheduled"
+29644,DCI,8203219.97,1,usaspending,exact,"DONALDSON COMPANY, INC.",DONALDSON Co INC,3564,Industrial & Commercial Fans & Blowers & Air Purifing Equip
+1809987,MIR,8142765.4,1,usaspending,prefix,"MIRION TECHNOLOGIES (CANBERRA), INC.","Mirion Technologies, Inc.",3829,"Measuring & Controlling Devices, NEC"
+1674862,ASH,8114706.49,1,usaspending,exact,ASHLAND LLC,ASHLAND INC.,5160,Wholesale-Chemicals & Allied Products
+42582,GT,7894274.2,1,usaspending,exact,"GOODYEAR TIRE & RUBBER COMPANY, THE",GOODYEAR TIRE & RUBBER CO /OH/,3011,Tires & Inner Tubes
+315449,UQM,7889899.0,30,sbir,exact,"UQM Technologies, Inc.",UQM TECHNOLOGIES INC,3679,"Electronic Components, NEC"
+1601046,KEYS,7870500.0,1,usaspending,exact,"KEYSIGHT TECHNOLOGIES, INC.","Keysight Technologies, Inc.",3823,"Industrial Instruments For Measurement, Display, and Control"
+1109354,BRKR,7792348.87,1,usaspending,prefix,BRUKER DETECTION CORP,BRUKER CORP,3826,Laboratory Analytical Instruments
+1411158,ANAC,7777952.59,1,usaspending,exact,"ANACOR PHARMACEUTICALS, INC.","Anacor Pharmaceuticals, Inc.",2834,Pharmaceutical Preparations
+889348,CVU,7658000.0,1,usaspending,exact,CPI AEROSTRUCTURES INC,CPI AEROSTRUCTURES INC,3728,"Aircraft Parts & Auxiliary Equipment, NEC"
+1158114,AAOI,4385099.0,11,sbir,exact,"APPLIED OPTOELECTRONICS, INC.","APPLIED OPTOELECTRONICS, INC.",3674,Semiconductors & Related Devices
+924168,EFOI,4044423.0,10,sbir,exact,"Energy Focus, Inc.","ENERGY FOCUS, INC/DE",3640,Electric Lighting & Wiring Equipment
+880177,PSMI,3911916.0,11,sbir,exact,PEREGRINE SEMICONDUCTOR CORP.,PEREGRINE SEMICONDUCTOR CORP,3674,Semiconductors & Related Devices
+895419,WOLF,3894707.0,8,sbir,exact,"CREE RESEARCH, INC.","WOLFSPEED, INC.",3674,Semiconductors & Related Devices
+32878,ENERQ,3841312.0,16,sbir,exact,"ENERGY CONVERSION DEVICES, INC.",ENERGY CONVERSION DEVICES INC,3674,Semiconductors & Related Devices
+2045873,BLTG,3797696.0,12,sbir,exact,BOUNDLESS CORP.,BOUNDLESS GROUP,3827,Optical Instruments & Lenses
+65770,MVIS,3512281.0,11,sbir,exact,"Microvision, Inc.","MICROVISION, INC.",3679,"Electronic Components, NEC"
+870753,NMRX,3479510.0,16,sbir,exact,NumerEx,NUMEREX CORP /PA/,3669,"Communications Equipment, NEC"
+886128,FCEL,3119505.0,12,sbir,exact,"FuelCell Energy, Inc.",FUELCELL ENERGY INC,3620,Electrical Industrial Apparatus
+1699880,AMLIF,2769758.0,6,sbir,prefix,AMERICAN LITHIUM ENERGY CORP.,American Lithium Corp.,1000,Metal Mining
+924717,SRDX,2280640.0,15,sbir,exact,"SURMODICS, INC.",SURMODICS INC,3841,Surgical & Medical Instruments & Apparatus
+1046995,EMAN,2256041.0,4,sbir,exact,eMagin Corporation,EMAGIN CORP,3674,Semiconductors & Related Devices
+1311241,IMI,1975313.0,4,sbir,exact,"INTERMOLECULAR, INC.",INTERMOLECULAR INC,3674,Semiconductors & Related Devices
+1830214,DNA,1900000.0,2,sbir,exact,Ginkgo BioWorks,"Ginkgo Bioworks Holdings, Inc.",2836,"Biological Products, (No Diagnostic Substances)"
+1350102,ASTI,1847824.0,5,sbir,exact,"ASCENT SOLAR TECHNOLOGIES, INC.","Ascent Solar Technologies, Inc.",3674,Semiconductors & Related Devices
+354908,FLIR,1566315.0,5,sbir,exact,"FLIR SYSTEMS, INC.","Teledyne FLIR, LLC",3812,"Search, Detection, Navigation, Guidance, Aeronautical Sys"
+1141240,LQMT,1337550.0,5,sbir,exact,"Liquidmetal Technologies, Inc.",LIQUIDMETAL TECHNOLOGIES INC,2800,Chemicals & Allied Products
+1055726,INO,1334679.0,2,sbir,exact,"INOVIO PHARMACEUTICALS, INC.","INOVIO PHARMACEUTICALS, INC.",2834,Pharmaceutical Preparations
+1120914,PDFS,1309773.0,6,sbir,exact,PDF SOLUTIONS,PDF SOLUTIONS INC,7372,Services-Prepackaged Software
+826253,AUSI,1195021.0,5,sbir,prefix,"Aura Systems, Inc.orporated",AURA SYSTEMS INC,3690,"Miscellaneous Electrical Machinery, Equipment & Supplies"
+77360,PNR,1149738.0,4,sbir,subsidiary,"Nano Terra, Inc. ",PENTAIR plc,3550,Special Industry Machinery (No Metalworking Machinery)
+924822,MLR,1148186.8900000001,2,sbir,subsidiary,"Century, Inc.",MILLER INDUSTRIES INC /TN/,3713,Truck & Bus Bodies
+2029586,BLNH,1139328.0,3,sbir,prefix,Blue Line Engineering Co,"Blue Line Holdings, Inc.",2086,Bottled & Canned Soft Drinks & Carbonated Waters
+1698530,XCUR,1135916.0,2,sbir,exact,"Exicure, Inc.","EXICURE, INC.",2834,Pharmaceutical Preparations
+804328,QCOM,1121579.0,10,sbir,exact,Qualcomm Inc.,QUALCOMM INC/DE,3663,Radio & Tv Broadcasting & Communications Equipment
+1838987,SPWR,1113859.0,6,sbir,exact,"SUNPOWER CORP. | Sunpower, Inc.",SunPower Inc.,1700,Construction - Special Trade Contractors
+1378140,OPTT,1046993.0,6,sbir,exact,"Ocean Power Technologies, Inc.","Ocean Power Technologies, Inc.",4911,Electric Services
+1730168,AVGO,991412.0,3,sbir,exact,Broadcom Inc,Broadcom Inc.,3674,Semiconductors & Related Devices
+889971,LPTH,899830.0,2,sbir,exact,"LIGHTPATH TECHNOLOGIES, INC.",LIGHTPATH TECHNOLOGIES INC,3674,Semiconductors & Related Devices
+1037760,CPHD,899545.0,2,sbir,exact,CEPHEID,CEPHEID,3826,Laboratory Analytical Instruments
+277595,EGN,889985.0,5,sbir,exact,"ENERGEN, INC.",ENERGEN CORP,1311,Crude Petroleum & Natural Gas
+1525306,MEGR,856290.0,4,sbir,exact,Metech Inc.,Metech Group Inc.,5065,"Wholesale-Electronic Parts & Equipment, NEC"
+926617,AWHL,846070.0,2,sbir,exact,"CIPHERGEN BIOSYSTEMS, INC.",Aspira Women's Health Inc.,2835,In Vitro & In Vivo Diagnostic Substances
+1395848,IOTS,836079.0,2,sbir,exact,ADESTO TECHNOLOGIES,ADESTO TECHNOLOGIES Corp,3674,Semiconductors & Related Devices
+875582,NTIC,812820.0,2,sbir,exact,Northern Technologies International Corporation,NORTHERN TECHNOLOGIES INTERNATIONAL CORP,3470,"Coating, Engraving & Allied Services"
+1506983,GCTK,752231.0,3,sbir,exact,Integrity Applications Incorporated,"Glucotrack, Inc.",3841,Surgical & Medical Instruments & Apparatus
+889423,SATCQ,747238.0,1,sbir,exact,Satcon Technology Corporation,SATCON TECHNOLOGY CORP,3674,Semiconductors & Related Devices
+796505,CLFD,696834.0,1,sbir,exact,"Apa Optics, Inc.","Clearfield, Inc.",3661,Telephone & Telegraph Apparatus
+940332,ANAD,642091.0,4,sbir,exact,Anadigics Inc,ANADIGICS INC,3674,Semiconductors & Related Devices
+864559,CSCD,622567.0,7,sbir,exact,"Cascade Microtech, Inc.",CASCADE MICROTECH INC,3825,Instruments For Meas & Testing of  Electricity & Elec Signals
+815094,ABMD,594730.0,3,sbir,exact,"ABIOMED, INC.",ABIOMED INC,3841,Surgical & Medical Instruments & Apparatus
+1460329,FLNT,543735.0,2,sbir,exact,Fluent Inc.,"Fluent, Inc.",7310,Services-Advertising
+1757898,STE,533407.0,2,sbir,exact,Steris Corp,STERIS plc,3842,"Orthopedic, Prosthetic & Surgical Appliances & Supplies"
+1922446,DEC,429446.0,2,sbir,exact,Diversified Energy Corporation,Diversified Energy Co,1311,Crude Petroleum & Natural Gas
+817720,SYNA,359991.0,2,sbir,exact,"Synaptics, Inc.",SYNAPTICS Inc,3674,Semiconductors & Related Devices
+96536,TAYD,342568.0,4,sbir,exact,Taylor Devices Inc.,"TAYLOR DEVICES, INC.",3569,"General Industrial Machinery & Equipment, NEC"
+1058811,IMMR,268884.0,3,sbir,exact,Immersion Corporation,IMMERSION CORP,3577,"Computer Peripheral Equipment, NEC"
+2101833,NANO,159999.0,2,sbir,exact,"FORGE NANO, INC.","Forge Nano Holdings, Inc.",3559,"Special Industry Machinery, NEC"
+768411,CYBE,149324.0,3,sbir,exact,Cyberoptics Corp,CYBEROPTICS CORP,3827,Optical Instruments & Lenses
+1500412,AMBQ,100000.0,1,sbir,exact,Ambiq Micro,"Ambiq Micro, Inc.",3674,Semiconductors & Related Devices
+1490978,SDGR,100000.0,1,sbir,exact,"SCHRODINGER, INC.","Schrodinger, Inc.",2834,Pharmaceutical Preparations
+766792,CVV,100000.0,2,sbir,exact,CVD EQUIPMENT CORPORATION,CVD EQUIPMENT CORP,3559,"Special Industry Machinery, NEC"
+1423824,ALDR,100000.0,1,sbir,exact,"ALDER BIOPHARMACEUTICALS, INC.",ALDER BIOPHARMACEUTICALS INC,2834,Pharmaceutical Preparations
+1166380,QTWW,100000.0,1,sbir,exact,"QUANTUM FUEL SYSTEMS TECHNOLOGIES WORLDWIDE, INC.","QUANTUM FUEL SYSTEMS TECHNOLOGIES WORLDWIDE, INC.",3714,Motor Vehicle Parts & Accessories
+1094739,FNSR,99996.0,1,sbir,exact,Finisar Corp,FINISAR CORP,3674,Semiconductors & Related Devices
+793279,CLZR,99967.0,2,sbir,exact,CANDELA CORPORATION,CANDELA CORP /DE/,3845,Electromedical & Electrotherapeutic Apparatus
+1819994,RKLB,99964.0,1,sbir,exact,"Rocket Lab USA, Inc.",Rocket Lab Corp,3760,Guided Missiles & Space Vehicles & Parts
+1859807,PFSA,99817.0,1,sbir,exact,"PROFUSA, INC. ","Profusa, Inc.",3841,Surgical & Medical Instruments & Apparatus
+39020,FEIM,99725.0,1,sbir,exact,FREQUENCY ELECTRONICS INC,FREQUENCY ELECTRONICS INC,3825,Instruments For Meas & Testing of  Electricity & Elec Signals
+720762,NIMU,99624.0,1,sbir,exact,"NON-INVASIVE MONITORING SYSTEMS, INC.",NON INVASIVE MONITORING SYSTEMS INC /FL/,3760,Guided Missiles & Space Vehicles & Parts
+1144879,APLD,99316.0,1,sbir,exact,"FLIGHT SAFETY TECHNOLOGIES, INC.",Applied Digital Corp.,7374,Services-Computer Processing & Data Preparation
+8504,ENRJ,98923.0,1,sbir,prefix,AURORA FLIGHT SCIENCES CORPORATION,AgEagle Aerial Systems Inc.,3721,Aircraft
+789132,SPNC,97695.0,2,sbir,exact,Spectranetics,SPECTRANETICS CORP,3845,Electromedical & Electrotherapeutic Apparatus
+1005387,GNSM,90181.0,1,sbir,exact,GENSYM CORP.,GENSYM CORP,7372,Services-Prepackaged Software
+888295,CREAF,79997.0,1,sbir,prefix,"Creative Technology Applications, Inc",CREATIVE TECHNOLOGY LTD,3577,"Computer Peripheral Equipment, NEC"
+1035267,ISRG,70000.0,1,sbir,exact,INTUITIVE SURGICAL,INTUITIVE SURGICAL INC,3842,"Orthopedic, Prosthetic & Surgical Appliances & Supplies"
+934473,GNVC,69993.0,1,sbir,exact,"GENVEC, INC.",GENVEC INC,2834,Pharmaceutical Preparations
+318306,ABEO,69988.0,1,sbir,exact,"ACCESS PHARMACEUTICALS, INC.",ABEONA THERAPEUTICS INC.,2834,Pharmaceutical Preparations
+1847409,HITI,69015.0,1,sbir,prefix,HIGH TIDE ASSOC.,High Tide Inc.,5990,"Retail-Retail Stores, NEC"
+41133,GRB,67014.0,1,sbir,exact,"GERBER SCIENTIFIC, INC.",GERBER SCIENTIFIC INC,3559,"Special Industry Machinery, NEC"
+836564,CPMV,61575.0,1,sbir,exact,PATRIOT SCIENTIFIC CORP.,Mosaic ImmunoEngineering Inc.,2836,"Biological Products, (No Diagnostic Substances)"
+728331,STRN,49689.0,1,sbir,exact,Sutron Corporation,SUTRON CORP,3829,"Measuring & Controlling Devices, NEC"
+830616,SCIA,49548.0,1,sbir,exact,"SCI ENGINEERED MATERIALS, INC.","SCI Engineered Materials, Inc.",3620,Electrical Industrial Apparatus

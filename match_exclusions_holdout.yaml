@@ -1,0 +1,29 @@
+# Holdout (FY2009-FY2016): extra companies and recipient names left out
+# Author: Tov Binyamin Brog
+#
+# Added to match_exclusions_v2.yaml for the version 3 holdout test only. Written from
+# output/holdout/match_review.csv before any holdout return was computed. USAspending
+# shows many recipients under today's parent name, so a few matches point to a company
+# that bought the recipient later; those are excluded too.
+
+frozen: "2026-11-27"
+exclude:
+  - {cik: 785786, ticker: PLXS, reason: "Plexus Scientific Corporation is unrelated to Plexus Corp"}
+  - {cik: 1904501, ticker: ZTEKF, reason: "Zentek Consulting is unrelated to Zentek Ltd"}
+  - {cik: 1006837, ticker: VATE, reason: "Innovate International Intelligence and Integration is unrelated to INNOVATE Corp"}
+  - {cik: 1120970, ticker: LODE, reason: "Comstock Construction is unrelated to Comstock Inc"}
+  - {cik: 1422109, ticker: BBLUQ, reason: "Blue Earth Marketing Company is unrelated to Blue Earth Inc"}
+  - {cik: 731012, ticker: HCSG, reason: "Healthcare Services of North America JV is unrelated to Healthcare Services Group"}
+  - {cik: 1178660, ticker: TUTH, reason: "The Costas Group (DoD awardee) cannot be confirmed as Standard Dental Labs"}
+  - {cik: 1357671, ticker: CRTD, reason: "Great Plains Enterprises is unrelated to Creatd"}
+  - {cik: 1809987, ticker: MIR, reason: "Canberra was bought by Mirion in 2016; the awards predate the link"}
+  - {cik: 8504, ticker: ENRJ, reason: "Aurora Flight Sciences (now Boeing) is unrelated to AgEagle"}
+  - {cik: 1971213, ticker: SBGI, reason: "Sinclair Oil Corporation is unrelated to Sinclair Inc"}
+exclude_recipients:
+  - {name: "ZIMMER GUNSUL FRASCA ARCHITECTS LLP", reason: "an architecture firm, not Zimmer Biomet"}
+  - {name: "BRUNSWICK ELECTRIC MEMBERSHIP CORPORATION", reason: "an electric cooperative, not Brunswick Corp"}
+  - {name: "COHERENT TECHNICAL SERVICES, INC.", reason: "unrelated to Coherent Corp"}
+  - {name: "ORION CONSTRUCTION CORPORATION", reason: "not shown as an Orion Group subsidiary"}
+  - {name: "ORION CONSTRUCTION, LLC", reason: "not shown as an Orion Group subsidiary"}
+  - {name: "POLARIS ALPHA ADVANCED SYSTEMS INC", reason: "Polaris Alpha (later Parsons) is unrelated to Polaris Inc"}
+  - {name: "POLARIS ALPHA, LLC", reason: "Polaris Alpha (later Parsons) is unrelated to Polaris Inc"}
