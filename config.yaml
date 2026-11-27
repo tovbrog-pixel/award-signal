@@ -1,0 +1,50 @@
+# Award Signal - Phase 1 configuration
+# Author: Tov Binyamin Brog
+
+# SEC asks every client to identify itself with a name and contact email.
+sec_user_agent: "Your Name your.email@example.com"
+
+data_dir: data
+output_dir: output
+
+awards:
+  source: usaspending            # usaspending | csv
+  csv_path: data/awards.csv      # used when source is csv (for example a HigherGov export)
+  start_date: "2015-01-01"
+  end_date: "2025-12-31"
+  min_amount: 7500000            # DoD announces awards above $7.5M
+  award_type_codes: [A, B, C, D] # definitive contracts, purchase orders, delivery orders, BPA calls
+  awarding_agency: Department of Defense
+  # DoD contract actions reach FPDS and USAspending about 90 days after award.
+  # The signal date is the action date plus this lag, so the test never trades
+  # on data the public could not yet see.
+  reporting_lag_days: 90
+
+signal:
+  min_award_to_revenue: 0.10     # award must be at least 10% of latest annual revenue
+  min_market_cap: 100000000      # $100M
+  max_market_cap: 5000000000     # $5B
+  horizon_days: 90               # holding period in trading days
+  cooldown_days: 126             # calendar days (about 90 trading days); ignore repeat signals on the same stock inside this window
+  delay_test_days: 5             # rerun with every signal this many trading days late
+
+prices:
+  provider: yfinance             # yfinance | csv
+  csv_dir: data/prices           # csv provider: one file per ticker with date,open,high,low,close,volume
+  benchmark: IWM
+
+costs:
+  position_dollars: 4000         # 4% of a $100,000 fake fund
+  # [upper bound of 20-day average dollar volume, half-spread in basis points]
+  half_spread_bps_by_adv:
+    - [1000000, 150]
+    - [10000000, 50]
+    - [1.0e+18, 15]
+  impact_coefficient_bps: 100    # impact = coefficient * sqrt(position / ADV dollars)
+
+tests:
+  in_sample_years: [2015, 2016, 2017]
+  test_years: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+  min_positive_years: 5          # Phase 1 gate: 5 of 8 test years beat IWM after costs
+  placebo_draws: 1000
+  random_seed: 7

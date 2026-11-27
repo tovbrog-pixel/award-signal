@@ -1,0 +1,11 @@
+[project]
+name = "award-signal"
+version = "0.1.0"
+description = "Phase 1 test: do large DoD contract awards predict small-cap excess returns?"
+authors = [{ name = "Tov Binyamin Brog" }]
+requires-python = ">=3.11"
+dependencies = ["pandas>=2.0", "numpy>=1.24", "requests>=2.31", "pyyaml>=6.0", "yfinance>=0.2.40"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
