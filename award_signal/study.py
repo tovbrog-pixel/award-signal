@@ -72,7 +72,7 @@ def run_study(events: pd.DataFrame, provider, cfg: dict, delay: int = 0) -> pd.D
         delisted_on = pd.Timestamp(getattr(ev, "delisting_date", pd.NaT)) if pd.notna(
             getattr(ev, "delisting_date", pd.NaT)) else None
         if not ev.passes_ratio:
-            rec["status"] = "below ratio"
+            rec["status"] = "no revenue on file" if pd.isna(ev.revenue) else "below ratio"
         elif ev.in_cooldown:
             rec["status"] = "cooldown"
         elif delisted_on is not None and delisted_on <= pd.Timestamp(ev.signal_date):

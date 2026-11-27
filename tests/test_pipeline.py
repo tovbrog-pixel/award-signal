@@ -270,3 +270,40 @@ def test_one_word_names_need_review():
     assert cand["confirmed"].iloc[0] == "" and "one-word" in cand["note"].iloc[0]
     t2 = pd.DataFrame({"cik": [7], "ticker": ["AVAV"], "sec_title": ["AeroVironment Inc"]})
     assert build_candidates(pd.Series(["AEROVIRONMENT, INC."]), t2)["confirmed"].iloc[0] == "Y"
+
+
+def test_notice_company_finder_and_filter(tmp_path):
+    import io as _io
+    from award_signal.notices import build_name_index, estimated_value, filter_year, find_companies
+    tickers = pd.DataFrame({"cik": [1, 2, 3, 4], "ticker": ["AVAV", "KTOS", "UIS", "AAPL"],
+                            "sec_title": ["AeroVironment Inc", "Kratos Defense & Security Solutions, Inc.",
+                                          "Unisys Corp", "Apple Inc."]})
+    index = build_name_index(tickers, None)
+    assert "UNISYS" in index and "APPLE" not in index          # five letters: too short alone
+    text = ("Notice of Intent to Sole Source. The Army intends to award a sole source contract to "
+            "AeroVironment, Inc. for Puma spares. Kratos Defense and Security Solutions may also respond.")
+    assert find_companies(text, index) == ["AEROVIRONMENT", "KRATOS DEFENSE AND SECURITY SOLUTIONS"]
+    assert find_companies("unisys systems are aging", index) == []   # one word without a company suffix
+    assert estimated_value("estimated at $2.5 million over five years") == 2.5e6
+
+    csv_text = ('"NoticeId","Title","Type","PostedDate","Description","Awardee"\n'
+                '"a1","Notice of Intent to Sole Source - AeroVironment","Special Notice","2020-03-05","x",""\n'
+                '"a2","Office furniture","Solicitation","2020-03-06","desks",""\n'
+                '"a3","Award: sole source","Award Notice","2020-03-07","sole source",""\n')
+
+    class Raw(_io.BytesIO):
+        decode_content = True
+
+    class Resp:
+        def __init__(self):
+            self.raw = Raw(csv_text.encode())
+        def raise_for_status(self): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    class Session:
+        def get(self, url, stream=True, timeout=300): return Resp()
+
+    out = tmp_path / "FY2020.csv"
+    assert filter_year(2020, out, Session(), log=lambda *a: None) == 1
+    assert list(pd.read_csv(out)["NoticeId"]) == ["a1"]

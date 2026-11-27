@@ -23,6 +23,12 @@ Two checks run alongside the verdict:
 - **Delay test:** reruns everything with each signal 5 trading days late. A big drop means the edge depends on speed.
 - **Survivorship check:** counts every qualifying trade the tool could not price (usually a delisted stock) as a total loss and reruns the yearly test. If the signal still passes, missing delisted stocks cannot explain the result. A reused ticker, where prices continue more than 30 days past the old company's delisting date, counts as unpriced.
 
+## Pre-award test: sole-source notices
+
+Agencies post a notice before awarding a contract without competition, and the notice usually names the company. `notices` streams SAM.gov's yearly archived-opportunity files (FY2015 onward), keeps the sole-source and intent-to-award notices, and finds the public companies they name by looking up SEC and delisted company names in the notice text. Each notice is dated by its posting date, which comes before any award.
+
+On Windows, double-click `run_notices.bat`. The SAM.gov files are large and are read as a stream; only matching notices are saved, in `data\notices\`, so a rerun skips years already done. The report goes to `output\notices\report.html`. Most notices state no dollar value, so this run skips the award-to-revenue test and uses the market-cap band, cooldown, placebo and yearly tests as before.
+
 ## Run it on your laptop (Windows)
 
 Install Python 3.11 or newer from python.org, then open PowerShell in this folder:
