@@ -7,6 +7,7 @@
     timing   did rising-area companies move before the 1 July entry? (version 2 data)
     holdout-data  FY2009-FY2016 award history from USAspending and SBIR (no returns)
     holdout  version 3 rule on FY2009-FY2016, and on FY2017-FY2027 for reference
+    lines    version 4: companies linked to individual budget lines
     run      build events, run the event study, write output/report.html
     demo     run the whole pipeline on synthetic data (no internet needed)
 """
@@ -392,6 +393,48 @@ def cmd_holdout(cfg: dict) -> None:
     print(f"Saved {out / 'summary.json'}")
 
 
+def cmd_lines(cfg: dict) -> None:
+    """Version 4: companies linked to individual budget lines, bought a week after the release."""
+    import json
+
+    import requests
+    import yaml
+
+    from . import widen
+    from .lines import build_award_table, link_awards, positions
+    from .sec import Fundamentals
+    from .v3 import judge
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "lines"
+    out.mkdir(parents=True, exist_ok=True)
+    lf = pd.read_csv(Path(cfg["output_dir"]) / "budget" / "lines_flagged.csv")
+    raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
+    session = requests.Session()
+    session.headers["User-Agent"] = "award-signal research"
+    sbir = widen.load_sbir(data / "sbir" / "award_data_no_abstract.csv", session)
+    sources = widen.combine_sources(widen.announcement_rows(raw), widen.load_sam_awards([]), sbir)
+    mt = pd.read_csv(data / "v2_matches.csv", parse_dates=["valid_from", "valid_until"])
+    excl = yaml.safe_load(Path("match_exclusions_v2.yaml").read_text(encoding="utf-8")) or {}
+    mt = mt[~mt["cik"].isin([int(e["cik"]) for e in excl.get("exclude", [])])]
+    sources = sources[~sources["recipient_name"].isin([e["name"] for e in excl.get("exclude_recipients", [])])]
+    aw = build_award_table(sources, mt)
+    lines, links = link_awards(lf[lf["request_fy"] >= 2014], aw)
+    print(f"{links['award_idx'].nunique():,} of {len(aw):,} matched award rows mention a budget line "
+          f"({links['key_id'].nunique():,} lines)")
+    pos = positions(lines, links, aw, Fundamentals(_http(cfg, "sec")), make_provider(cfg), cfg, range(2017, 2028))
+    pos.to_csv(out / "positions.csv", index=False)
+    res = {"author": "Tov Binyamin Brog", **judge(pos, pos, cfg)}
+    cur = pos[(pos["status"] == "hold not finished") & pos["rising"]].drop_duplicates(["request_fy", "ticker"])
+    cur.to_csv(out / "current_picks.csv", index=False)
+    (out / "summary.json").write_text(json.dumps(res, indent=2, default=str), encoding="utf-8")
+    pl = res["placebo"]
+    print(f"Positions {res['positions']}, mean net excess {(res['mean_net_excess'] or 0):+.3f}, years beating IWM "
+          f"{res['yearly_test']['years_beating_iwm']} of {res['yearly_test']['years']}, random-line draws beaten "
+          f"{pl.get('share_of_placebos_beaten', float('nan')):.0%}: {'PASSED' if res['passed'] else 'NOT PASSED'}")
+    print(f"Open positions from the latest budgets: {', '.join(cur['ticker']) or 'none'}")
+    print(f"Saved {out / 'summary.json'}")
+
+
 def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
     import json
@@ -512,7 +555,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "holdout-data", "holdout", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "holdout-data", "holdout", "lines", "run", "demo"])
     ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
     ap.add_argument("--years", help="notices only: filter just these fiscal years (e.g. 2021,2022), no scan")
     ap.add_argument("--config", default="config.yaml")
@@ -534,6 +577,6 @@ def main(argv=None) -> None:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
      "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg), "timing": lambda: cmd_timing(cfg),
-     "holdout-data": lambda: cmd_holdout_data(cfg), "holdout": lambda: cmd_holdout(cfg),
+     "holdout-data": lambda: cmd_holdout_data(cfg), "holdout": lambda: cmd_holdout(cfg), "lines": lambda: cmd_lines(cfg),
      "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

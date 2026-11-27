@@ -672,3 +672,20 @@ def test_v3_rule_trades_the_release_window_and_band_fallback():
     rows = trades(sig, pd.DataFrame(aw), Fund(), DictProvider(frames), cfg, log=lambda *a: None)
     res = judge(rows, sig, cfg)
     assert res["passed"] and res["yearly_test"]["years"] == 8
+
+
+def test_v4_line_keys_and_links():
+    from award_signal.lines import line_keys, link_awards
+    assert ("MSV", True) in line_keys("Maneuver Support Vessel (MSV)")
+    assert ("MK-54", True) in line_keys("MK-54 Torpedo Mods")
+    assert ("F-35", True) in line_keys("F-35 STOVL")
+    assert line_keys("Physical Security Equipment") == []
+    assert all(k != "Medical" for k, _ in line_keys("Readiness Support (Medical)"))
+    lines = pd.DataFrame({"request_fy": [2024, 2024], "exhibit": ["p1", "p1"], "line_id": ["A", "B"],
+                          "title": ["Maneuver Support Vessel (MSV)", "F-35 STOVL"], "ramp": [True, False],
+                          "new_start": [False, False]})
+    aw = pd.DataFrame({"text": ["Acme Corp. is awarded $9,000,000 for MSV hull work.",
+                                "Beta Inc. is awarded $8,000,000 for F-35 parts.", "Gamma for msv-like work."],
+                       "recipient_name": ["Acme", "Beta", "Gamma"]})
+    ln, links = link_awards(lines, aw)
+    assert set(map(tuple, links.to_numpy())) == {("msv", 0), ("f-35", 1)}
