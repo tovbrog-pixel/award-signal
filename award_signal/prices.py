@@ -38,16 +38,35 @@ class YFinanceProvider(CsvProvider):
     def __init__(self, csv_dir: str | Path, start: str, end: str):
         super().__init__(csv_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
+        self.failed: set[str] = set()
         self.start, self.end = start, end
 
     def get(self, ticker: str) -> pd.DataFrame | None:
         p = self.dir / f"{ticker}.csv"
+        if ticker in self._cache:
+            return self._cache[ticker]
         if not p.exists():
+            import time
+
             import yfinance as yf
 
-            raw = yf.download(ticker, start=self.start, end=self.end, auto_adjust=True,
-                              progress=False, threads=False)
+            raw, network_error = None, False
+            for attempt in range(3):
+                try:
+                    raw = yf.download(ticker, start=self.start, end=self.end, auto_adjust=True,
+                                      progress=False, threads=False)
+                    err = str(getattr(getattr(yf, "shared", None), "_ERRORS", {}).get(ticker, ""))
+                except Exception as exc:
+                    raw, err = None, str(exc)
+                if raw is not None and not raw.empty:
+                    break
+                network_error = any(k in err.lower() for k in ("curl", "timed out", "timeout", "connection"))
+                if not network_error:
+                    break                     # Yahoo answered: it has no history for this symbol
+                time.sleep(5 * (attempt + 1))
             if raw is None or raw.empty:
+                if network_error:
+                    self.failed.add(ticker)   # a later run tries again
                 self._cache[ticker] = None
                 return None
             if isinstance(raw.columns, pd.MultiIndex):

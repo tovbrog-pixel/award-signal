@@ -62,37 +62,59 @@ def request_body(cfg: dict, w_start: str, w_end: str, fields: list, page: int, n
     }
 
 
-def fetch_usaspending(cfg: dict, http: Http, log=print) -> pd.DataFrame:
-    a = cfg["awards"]
-    fields = BASE_FIELDS + [DATE_FIELD]
-    new_only = bool(a.get("new_awards_only", True))
+def _fetch_window(cfg: dict, http: Http, w_start: str, w_end: str, state: dict, log, depth: int = 0) -> list:
+    """All pages for one date window. If USAspending keeps dropping the
+    connection, split the window in half and try each half; a single day that
+    still fails is skipped and recorded in state['skipped']."""
     rows = []
-    for w_start, w_end in _month_windows(a["start_date"], a["end_date"]):
-        page = 1
-        while True:
-            body = request_body(cfg, w_start, w_end, fields, page, new_only)
-            try:
-                data = http.json("POST", USASPENDING_URL, body)
-            except HttpError as err:
-                if err.status != 400:
-                    raise
-                if new_only and "date_type" in str(err):
+    page = 1
+    while True:
+        body = request_body(cfg, w_start, w_end, state["fields"], page, state["new_only"])
+        try:
+            data = http.json("POST", USASPENDING_URL, body, retries=4)
+        except HttpError as err:
+            if err.status == 400:
+                if state["new_only"] and "date_type" in str(err):
                     log("USAspending rejected the new-awards-only filter; using all action dates. "
-                        "The base-date check below still drops old contracts.")
-                    new_only = False
+                        "The base-date check still drops old contracts.")
+                    state["new_only"] = False
                     continue
-                if DATE_FIELD in fields:
+                if DATE_FIELD in state["fields"]:
                     log(f"USAspending rejected '{DATE_FIELD}'; falling back to 'Start Date'.")
-                    fields = list(BASE_FIELDS)
+                    state["fields"] = list(BASE_FIELDS)
                     continue
                 raise
-            for r in data.get("results", []):
-                rows.append(r)
-            if not data.get("page_metadata", {}).get("hasNext"):
-                break
-            page += 1
+            s, e = pd.Timestamp(w_start), pd.Timestamp(w_end)
+            if (e - s).days >= 1 and depth < 6:
+                mid = s + (e - s) / 2
+                mid = pd.Timestamp(mid.date())
+                log(f"    connection trouble for {w_start} to {w_end}; splitting the window")
+                return (_fetch_window(cfg, http, w_start, mid.strftime("%Y-%m-%d"), state, log, depth + 1) +
+                        _fetch_window(cfg, http, (mid + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+                                      w_end, state, log, depth + 1))
+            log(f"    SKIPPED {w_start} to {w_end} (page {page}) after repeated connection failures")
+            state["skipped"].append({"start": w_start, "end": w_end, "page": page, "error": str(err)[:200]})
+            return rows
+        rows.extend(data.get("results", []))
+        if not data.get("page_metadata", {}).get("hasNext"):
+            return rows
+        page += 1
+
+
+def fetch_usaspending(cfg: dict, http: Http, log=print) -> pd.DataFrame:
+    a = cfg["awards"]
+    state = {"fields": BASE_FIELDS + [DATE_FIELD], "new_only": bool(a.get("new_awards_only", True)),
+             "skipped": []}
+    rows = []
+    for w_start, w_end in _month_windows(a["start_date"], a["end_date"]):
+        rows.extend(_fetch_window(cfg, http, w_start, w_end, state, log))
         log(f"  {w_start[:7]}: {len(rows):,} award rows so far")
-    return normalize_usaspending(pd.DataFrame(rows), cfg)
+    if state["skipped"]:
+        log(f"WARNING: {len(state['skipped'])} date windows were skipped; see data/awards_skipped.csv. "
+            "Run `awards` again later to fill them.")
+    df = normalize_usaspending(pd.DataFrame(rows), cfg)
+    df.attrs["skipped"] = state["skipped"]
+    return df
 
 
 def normalize_usaspending(raw: pd.DataFrame, cfg: dict) -> pd.DataFrame:

@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -52,9 +53,11 @@ def analyze(awards: pd.DataFrame, rmap: pd.DataFrame, fundamentals, provider, cf
 
 
 def _http(cfg: dict, sub: str) -> Http:
-    ua = cfg["sec_user_agent"]
+    # The SEC_USER_AGENT environment variable, when set, overrides config.yaml.
+    ua = os.environ.get("SEC_USER_AGENT", "").strip() or cfg["sec_user_agent"]
     if "example.com" in ua:
-        sys.exit("Set sec_user_agent in config.yaml to your name and email first (SEC requires it).")
+        sys.exit("Set the SEC_USER_AGENT environment variable, or sec_user_agent in config.yaml, "
+                 "to a name and contact email first (SEC requires it).")
     return Http(Path(cfg["data_dir"]) / "cache" / sub, ua)
 
 
@@ -65,6 +68,8 @@ def cmd_awards(cfg: dict) -> None:
     else:
         print("Downloading DoD awards from USAspending, one month at a time...")
         df = awards_mod.fetch_usaspending(cfg, _http(cfg, "usaspending"))
+        skipped = Path(cfg["data_dir"]) / "awards_skipped.csv"
+        pd.DataFrame(df.attrs.get("skipped", []), columns=["start", "end", "page", "error"]).to_csv(skipped, index=False)
     df.to_csv(out, index=False)
     print(f"Saved {len(df):,} awards to {out}")
 

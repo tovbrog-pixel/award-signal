@@ -33,7 +33,9 @@ COLUMNS = ["recipient_name", "cik", "ticker", "sec_title", "score", "confirmed",
 def normalize(name: str) -> str:
     if not isinstance(name, str):
         return ""
-    s = name.upper().replace("&", " AND ")
+    s = name.upper()
+    s = re.sub(r"/[A-Z]{2,3}/?\s*$", " ", s)   # SEC state-of-incorporation tags like /DE/
+    s = s.replace("&", " AND ")
     s = re.sub(r"[^A-Z0-9 ]", " ", s)
     words = [w for w in s.split() if w not in SUFFIXES]
     return " ".join(words)

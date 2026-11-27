@@ -75,6 +75,10 @@ def run_study(events: pd.DataFrame, provider, cfg: dict, delay: int = 0) -> pd.D
             rec["status"] = "below ratio"
         elif ev.in_cooldown:
             rec["status"] = "cooldown"
+        elif delisted_on is not None and delisted_on <= pd.Timestamp(ev.signal_date):
+            # the listed company was already gone; awards still flow to its old name
+            # (often a unit of the acquirer), so there was nothing to buy
+            rec["status"] = "delisted before signal"
         else:
             if ev.ticker not in frames:
                 px = provider.get(ev.ticker)
@@ -82,7 +86,9 @@ def run_study(events: pd.DataFrame, provider, cfg: dict, delay: int = 0) -> pd.D
                 last_date[ev.ticker] = px.index[-1] if px is not None and len(px) else None
             tf = frames[ev.ticker]
             i = tf.entry_index(ev.signal_date, delay) if tf is not None else None
-            if tf is None:
+            if tf is None and ev.ticker in getattr(provider, "failed", ()):
+                rec["status"] = "price download failed"   # network trouble; excluded, rerun to retry
+            elif tf is None:
                 rec["status"] = "no price data"
             elif delisted_on is not None and last_date[ev.ticker] > delisted_on + pd.Timedelta(days=30):
                 # prices continue well past the delisting date: another company reused the symbol

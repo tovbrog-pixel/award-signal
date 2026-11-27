@@ -29,7 +29,7 @@ class Http:
         self._last = time.time()
 
     def json(self, method: str, url: str, body: dict | None = None, use_cache: bool = True,
-             retries: int = 4) -> dict:
+             retries: int = 8) -> dict:
         key = method + url + json.dumps(body or {}, sort_keys=True)
         cp = self._cache_path(key)
         if use_cache and cp.exists():
@@ -45,16 +45,16 @@ class Http:
                     return data
                 if resp.status_code in (429, 500, 502, 503, 504):
                     last_err = f"HTTP {resp.status_code}"
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(60, 2 ** (attempt + 1)))
                     continue
                 raise HttpError(resp.status_code, resp.text[:500])
             except requests.RequestException as exc:  # network hiccup
                 last_err = str(exc)
-                time.sleep(2 ** attempt)
+                time.sleep(min(60, 2 ** (attempt + 1)))
         raise HttpError(0, f"gave up after {retries} tries: {last_err}")
 
 
-    def text(self, url: str, use_cache: bool = True, retries: int = 4) -> str:
+    def text(self, url: str, use_cache: bool = True, retries: int = 8) -> str:
         """GET a text file (CSV, plain text) with the same cache and retry rules."""
         cp = self._cache_path("TEXT" + url).with_suffix(".txt")
         if use_cache and cp.exists():
@@ -70,12 +70,12 @@ class Http:
                     return resp.text
                 if resp.status_code in (429, 500, 502, 503, 504):
                     last_err = f"HTTP {resp.status_code}"
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(60, 2 ** (attempt + 1)))
                     continue
                 raise HttpError(resp.status_code, resp.text[:500])
             except requests.RequestException as exc:
                 last_err = str(exc)
-                time.sleep(2 ** attempt)
+                time.sleep(min(60, 2 ** (attempt + 1)))
         raise HttpError(0, f"gave up after {retries} tries: {last_err}")
 
 

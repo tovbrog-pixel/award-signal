@@ -182,3 +182,47 @@ def test_reused_ticker_is_flagged():
                         "passes_ratio": True, "in_cooldown": False}])
     res = run_study(ev, DictProvider({"OLD": px, "IWM": px}), CFG)
     assert res["status"].iloc[0] == "ticker reused after delisting"
+
+
+def test_usaspending_splits_and_skips_failing_windows():
+    from award_signal.awards import fetch_usaspending
+    from award_signal.net import HttpError
+
+    class FakeHttp:
+        def json(self, method, url, body, retries=8):
+            p = body["filters"]["time_period"][0]
+            if p["start_date"] <= "2018-03-15" <= p["end_date"]:
+                raise HttpError(0, "Remote end closed connection")
+            return {"results": [{"Award ID": p["start_date"], "Recipient Name": "X", "Recipient UEI": None,
+                                 "Award Amount": 9e6, "Start Date": p["start_date"],
+                                 "Base Obligation Date": p["start_date"], "Awarding Sub Agency": "Army",
+                                 "Description": ""}],
+                    "page_metadata": {"hasNext": False}}
+
+    cfg = {"awards": {**CFG["awards"], "start_date": "2018-02-01", "end_date": "2018-04-30",
+                      "award_type_codes": ["A"], "awarding_agency": "Department of Defense"}}
+    df = fetch_usaspending(cfg, FakeHttp(), log=lambda *a: None)
+    skipped = df.attrs["skipped"]
+    assert [(s["start"], s["end"]) for s in skipped] == [("2018-03-15", "2018-03-15")]
+    assert "2018-02-01" in set(df["award_id"]) and "2018-04-01" in set(df["award_id"])
+    assert len(df) > 3        # March was split into pieces around the bad day
+
+
+def test_normalize_drops_state_tags():
+    assert normalize("L3HARRIS TECHNOLOGIES, INC. /DE/") == normalize("L3Harris Technologies, Inc")
+    assert normalize("GOODYEAR TIRE & RUBBER CO /OH/") == normalize("Goodyear Tire & Rubber Company, The")
+
+
+def test_award_after_delisting_is_not_a_trade():
+    from award_signal.synthetic import DictProvider
+    from award_signal.study import worst_case
+    dates = pd.bdate_range("2016-01-01", "2018-12-31")
+    px = pd.DataFrame({"open": 10.0, "high": 10.0, "low": 10.0, "close": 10.0, "volume": 1e6}, index=dates)
+    ev = pd.DataFrame([{"ticker": "GONE", "cik": 1, "signal_date": pd.Timestamp("2020-03-01"), "amount": 2e7,
+                        "n_awards": 1, "first_action_date": pd.Timestamp("2019-12-01"),
+                        "delisting_date": pd.Timestamp("2017-06-30"), "recipients": "Gone Co",
+                        "revenue": 1e8, "shares_outstanding": 2e7, "award_to_revenue": 0.2,
+                        "passes_ratio": True, "in_cooldown": False}])
+    res = run_study(ev, DictProvider({"IWM": px}), CFG)
+    assert res["status"].iloc[0] == "delisted before signal"
+    assert worst_case(res, CFG)["unpriced_trades"] == 0
