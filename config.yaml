@@ -36,8 +36,8 @@ stages:
   # company gets (award_signal/widen.py and award_signal/match2.py hold the exact rules):
   #   - announcements tagged on the full paragraph, minus the contracting-office, funds
   #     and work-location sentences
-  #   - SAM.gov DoD award notices from $100,000 to $7.5M, and DoD SBIR/STTR awards under
-  #     $7.5M (counted as public 365 days after award)
+  #   - DoD SBIR/STTR awards under $7.5M (counted as public 365 days after award); SAM.gov
+  #     award notices were planned and dropped before any return (archives too slow to download)
   #   - matching adds division names, dated former names and Exhibit 21 subsidiaries
   #   - companies listed in match_exclusions_v2.yaml are left out (reviewed blind to returns)
 

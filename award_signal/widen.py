@@ -9,7 +9,9 @@ could see it, dollars, text to tag):
                  that name the contracting office, the funds and the work
                  location, plus a few organization names that contain area
                  words (Space and Naval Warfare Systems Command buys IT).
-  sam            SAM.gov archived award notices from DoD, $100,000 up to $7.5M
+  sam            (dropped from version 2 before any return: the archives downloaded too
+                 slowly; kept for a later version)
+                 SAM.gov archived award notices from DoD, $100,000 up to $7.5M
                  (larger DoD actions are already in the announcements). Seen on
                  the posting date. Tagged on title plus the first 500
                  characters of the description.

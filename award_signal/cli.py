@@ -211,7 +211,11 @@ def cmd_widen(cfg: dict) -> None:
     except Exception as exc:
         print(f"SBIR file not available ({exc}). Save award_data_no_abstract.csv from sbir.gov in data\\sbir and rerun.")
         sbir = widen.load_sbir(data / "sbir" / "missing.csv")
-    sam_files = sorted((data / "notices").glob("FY*_awards.csv"))
+    # SAM.gov award notices: dropped from version 2 on 2026-11-27, before any v2 return, because the
+    # yearly archives downloaded at well under 1 MB a minute from the laptop (days for FY2015-FY2026).
+    # Set stages: v2_use_sam: true to put them back (that run is a new version).
+    use_sam = bool(cfg.get("stages", {}).get("v2_use_sam", False))
+    sam_files = sorted((data / "notices").glob("FY*_awards.csv")) if use_sam else []
     sam = widen.load_sam_awards(sam_files)
     raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
     if raw["description"].fillna("").str.len().max() <= 300:
