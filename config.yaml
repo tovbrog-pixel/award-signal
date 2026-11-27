@@ -18,9 +18,9 @@ budget:
   ramp_multiple: 1.5             # line flag: request at least 1.5x the enacted amount
   ramp_min_request: 20000000     # ... and at least $20M
   new_start_min_request: 10000000  # line flag: new line requesting at least $10M
-  area_growth: 0.25              # area flag: request total 25% above enacted total
-  area_min_increase: 100000000   # ... and at least $100M more
-  area_min_line_flags: 3         # or at least 3 ramps or new starts in the area
+  # Rising-area rule, version 1, frozen 2026-11-27 before any return was computed:
+  area_excess_growth: 0.15       # area request grows 15 points faster than the whole DoD request
+  area_min_increase: 100000000   # ... and by at least $100M
   signal_month_day: "07-01"      # signals dated 1 July of the year the request comes out
 
 announcements:

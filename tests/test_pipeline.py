@@ -320,7 +320,7 @@ def _xlsx(rows):
 
 
 BUDGET_CFG = {"budget": {"ramp_multiple": 1.5, "ramp_min_request": 20e6, "new_start_min_request": 10e6,
-                         "area_growth": 0.25, "area_min_increase": 100e6, "area_min_line_flags": 3,
+                         "area_excess_growth": 0.15, "area_min_increase": 100e6,
                          "signal_month_day": "07-01"}}
 
 
@@ -383,3 +383,17 @@ def test_budget_reads_hand_saved_files(tmp_path):
     found = local_files(tmp_path, 2026)
     assert found["r1"].name == "r1_display.xlsx" and found["p1"].name == "p1.xlsx"
     assert local_files(tmp_path, 2025) == {}
+
+
+def test_rising_area_is_judged_against_department_growth():
+    from award_signal.budget import area_signals
+    flagged = pd.DataFrame([
+        {"request_fy": 2022, "exhibit": "r1", "line_id": "A", "title": "Hypersonic Prototype", "enacted": 500e6,
+         "request": 900e6, "ramp": False, "new_start": False},
+        {"request_fy": 2022, "exhibit": "r1", "line_id": "B", "title": "Facilities", "enacted": 9_500e6,
+         "request": 9_600e6, "ramp": False, "new_start": False},
+        {"request_fy": 2022, "exhibit": "r1", "line_id": "C", "title": "Space Sensor", "enacted": 1_000e6,
+         "request": 1_050e6, "ramp": False, "new_start": False}])
+    sig = area_signals(flagged, {"hypersonics": ["hypersonic"], "space": ["space"]}, BUDGET_CFG).set_index("area")
+    assert sig.loc["hypersonics", "rising"]          # +80% against about +4% overall
+    assert not sig.loc["space", "rising"]            # +5%: barely above the department, and only $50M

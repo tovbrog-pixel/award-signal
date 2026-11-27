@@ -104,16 +104,38 @@ def _col(labels: list[str], *patterns: str, exclude: str = "title") -> int | Non
     return None
 
 
-def _kind(label: str) -> str | None:
-    lab = label.lower()
-    if re.search(r"quantity|qty", lab):
-        return None
-    for k in ("actual", "enacted", "request", "estimate"):
-        if k in lab:
-            return "request" if k == "estimate" else k
-    if "total" in lab:
-        return "total"
-    return None
+SKIP = re.compile(r"quantity|qty|less|remaining|classification|include", re.I)
+
+
+def _usable_amount(lab: str, fy: int) -> bool:
+    if not re.search(rf"fy\s*{fy}\b", lab, re.I) or SKIP.search(lab):
+        return False
+    # an OCO-only column is part of a total, never the total itself
+    if re.search(r"\boco\b", lab, re.I) and not re.search(r"base", lab, re.I):
+        return False
+    return True
+
+
+def _pick(labels: list[str], fy: int, tests: list) -> int | None:
+    cands = [(i, lab) for i, lab in enumerate(labels) if _usable_amount(lab, fy)]
+    for test in tests:
+        for i, lab in cands:
+            if test(lab.lower()):
+                return i
+    return cands[0][0] if cands else None
+
+
+def amount_columns(labels: list[str], request_fy: int) -> dict[str, int | None]:
+    """Choose the comparable 'current-year enacted' and 'request' columns by priority.
+
+    Request: total, then request, then base. Enacted (prior year): total enacted,
+    then total, then enacted/enactment, then a continuing-resolution request.
+    Totals are preferred on both sides so the two figures cover the same funds.
+    """
+    req = _pick(labels, request_fy, [lambda l: "total" in l, lambda l: "request" in l, lambda l: "base" in l])
+    enacted = _pick(labels, request_fy - 1, [lambda l: "total" in l and "enact" in l, lambda l: "total" in l,
+                                             lambda l: "enact" in l, lambda l: "request" in l or "cr" in l])
+    return {"request": req, "enacted": enacted}
 
 
 def parse_exhibit(content: bytes, exhibit: str, request_fy: int) -> pd.DataFrame:
@@ -122,46 +144,37 @@ def parse_exhibit(content: bytes, exhibit: str, request_fy: int) -> pd.DataFrame
     if h is None:
         raise ValueError(f"{exhibit} FY{request_fy}: no header row found")
     labels = _labels(raw, h)
-    id_col = _col(labels, r"program element.*(number|#|no)", r"^program element$", r"line item.*(number|#|no)",
-                  r"budget line item$", r"\bbli\b(?!.*title)", r"\bpe\b(?!.*title)", r"line number")
+    # the line identifier: PE or budget line item number, never the line-number column (it repeats)
+    id_col = _col(labels, r"^pe\s*/\s*bli$", r"^(budget )?line item$", r"^pe$", r"^program element$",
+                  r"program element.*(number|#|no)", r"line item.*(number|#|no)", r"\bbli\b", r"\bpe\b",
+                  r"line number")
     title_col = _col(labels, r"(program element|line item|bli|pe).*title", r"^title$", exclude="")
-    org_col = _col(labels, r"^organization", r"organization", exclude="")
+    org_col = _col(labels, r"^organization", exclude="")
     acct_col = _col(labels, r"account title", exclude="")
-    amount_cols = []
-    for i, lab in enumerate(labels):
-        m = re.search(r"fy\s*(\d{4})", lab, re.I)
-        k = _kind(lab)
-        if m and k:
-            amount_cols.append((i, int(m.group(1)), k, lab))
-    if id_col is None or title_col is None or not amount_cols:
+    addnon_col = _col(labels, r"add\s*/\s*non", exclude="")
+    cols = amount_columns(labels, request_fy)
+    if id_col is None or title_col is None or (cols["request"] is None and cols["enacted"] is None):
         raise ValueError(f"{exhibit} FY{request_fy}: columns not recognized: {labels}")
-    # keep one column per (fy, kind): prefer a label containing "total"
-    chosen: dict[tuple[int, str], tuple[int, str]] = {}
-    for i, fy, k, lab in amount_cols:
-        key = (fy, k if k != "total" else "total")
-        prev = chosen.get(key)
-        if prev is None or ("total" in lab.lower() and "total" not in prev[1].lower()):
-            chosen[key] = (i, lab)
-    body = raw.iloc[h + 1:]
     rows = []
-    for _, r in body.iterrows():
-        line_id = r.iloc[id_col]
-        title = r.iloc[title_col]
+    for _, r in raw.iloc[h + 1:].iterrows():
+        line_id, title = r.iloc[id_col], r.iloc[title_col]
         if pd.isna(line_id) or pd.isna(title) or str(title).strip().lower().startswith("total"):
             continue
+        if addnon_col is not None and "non" in str(r.iloc[addnon_col]).lower():
+            continue   # non-add rows repeat money already counted elsewhere
         base = {"request_fy": request_fy, "exhibit": exhibit, "line_id": str(line_id).strip(),
                 "title": str(title).strip(),
                 "organization": str(r.iloc[org_col]).strip() if org_col is not None else "",
                 "account_title": str(r.iloc[acct_col]).strip() if acct_col is not None else ""}
-        for (fy, k), (i, _) in chosen.items():
+        for kind, fy in (("enacted", request_fy - 1), ("request", request_fy)):
+            i = cols[kind]
+            if i is None:
+                continue
             v = pd.to_numeric(r.iloc[i], errors="coerce")
             if pd.notna(v):
-                rows.append({**base, "fy": fy, "kind": k, "amount": float(v) * 1000})
-    out = pd.DataFrame(rows)
-    # a "total" column for the request year stands in for a missing "request" column
-    if not out.empty and not ((out["fy"] == request_fy) & (out["kind"] == "request")).any():
-        out.loc[(out["fy"] == request_fy) & (out["kind"] == "total"), "kind"] = "request"
-    return out
+                rows.append({**base, "fy": fy, "kind": kind, "amount": float(v) * 1000,
+                             "source_column": labels[i]})
+    return pd.DataFrame(rows)
 
 
 def line_summary(long: pd.DataFrame) -> pd.DataFrame:
@@ -177,7 +190,7 @@ def line_summary(long: pd.DataFrame) -> pd.DataFrame:
             return None
         rows.append({"request_fy": rfy, "exhibit": ex, "line_id": lid,
                      "title": g["title"].iloc[0], "organization": g["organization"].iloc[0],
-                     "enacted": pick(rfy - 1, ["enacted", "total"]),
+                     "enacted": pick(rfy - 1, ["enacted"]),
                      "request": pick(rfy, ["request"])})
     return pd.DataFrame(rows)
 
@@ -203,8 +216,18 @@ def flag_lines(summary: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 
 
 def area_signals(flagged: pd.DataFrame, areas: dict[str, list[str]], cfg: dict) -> pd.DataFrame:
-    """Area totals per request year and the rising-area flag, with the rule written out."""
+    """Area totals per request year and the rising-area flag.
+
+    Rule (version 1, frozen 2026-11-27 before any return was computed): an area
+    is rising when its requested total grows at least `area_excess_growth`
+    faster than the whole R-1 plus P-1 request does that year, and by at least
+    `area_min_increase` dollars. Measuring against the department-wide change
+    keeps a year of across-the-board growth from flagging every area.
+    """
     b = cfg["budget"]
+    md = b.get("signal_month_day", "07-01")
+    totals = flagged.groupby("request_fy").agg(E=("enacted", "sum"), R=("request", "sum"))
+    dod_growth = (totals["R"] / totals["E"] - 1).to_dict()
     f = flagged.copy()
     f["areas"] = tag_areas(f["title"], areas)
     f = f.explode("areas").dropna(subset=["areas"])
@@ -213,12 +236,12 @@ def area_signals(flagged: pd.DataFrame, areas: dict[str, list[str]], cfg: dict) 
         enacted = g["enacted"].fillna(0).sum()
         request = g["request"].fillna(0).sum()
         growth = (request / enacted - 1) if enacted > 0 else None
-        n_flags = int(g["ramp"].sum() + g["new_start"].sum())
-        rising = bool((growth is not None and growth >= b["area_growth"] and request - enacted >= b["area_min_increase"])
-                      or n_flags >= b["area_min_line_flags"])
-        md = b.get("signal_month_day", "07-01")
+        excess = growth - dod_growth.get(rfy, 0.0) if growth is not None else None
+        rising = bool(excess is not None and excess >= b["area_excess_growth"]
+                      and request - enacted >= b["area_min_increase"])
         rows.append({"request_fy": rfy, "area": area, "lines": len(g), "enacted": enacted, "request": request,
-                     "growth": growth, "ramps": int(g["ramp"].sum()), "new_starts": int(g["new_start"].sum()),
+                     "growth": growth, "dod_growth": dod_growth.get(rfy), "excess_growth": excess,
+                     "ramps": int(g["ramp"].sum()), "new_starts": int(g["new_start"].sum()),
                      "rising": rising, "signal_date": pd.Timestamp(f"{rfy - 1}-{md}")})
     return pd.DataFrame(rows).sort_values(["request_fy", "area"])
 
