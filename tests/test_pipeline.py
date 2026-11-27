@@ -602,3 +602,34 @@ def test_v2_one_word_prefix_only_for_announcement_names():
                               {"Vertex Aerospace LLC", "Vertex Inc"})
     assert set(out["recipient_name"]) == {"Vertex Aerospace LLC", "Vertex Inc"}
     assert parse_ex21("<tr><td>The State of California</td></tr><tr><td>Acme Widgets LLC</td></tr>") == ["Acme Widgets LLC"]
+
+
+def test_timing_check_finds_a_release_jump():
+    from award_signal.synthetic import DictProvider, StubFundamentals, _frame
+    from award_signal.timing import RELEASE_DATES, summarize, window_rows
+    rng = np.random.default_rng(5)
+    dates = pd.bdate_range("2014-01-01", "2026-11-20")
+    bench = _frame(dates, 150 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(dates)))), rng, 3e7)
+    areas = ["hypersonics", "space", "cyber", "undersea", "munitions", "nuclear"]
+    rising_by_year = {y: set(rng.choice(areas, size=2, replace=False)) for y in range(2017, 2027)}
+    frames, rows, shares, aw = {"IWM": bench}, [], {}, []
+    for k in range(36):
+        area, tk, cik = areas[k % 6], f"TT{k:02d}", 700 + k
+        shares[cik] = 2e7
+        lr = np.log1p(bench["close"].pct_change().fillna(0).to_numpy()) + rng.normal(0, 0.02, len(dates))
+        for y, ris in rising_by_year.items():
+            if area in ris:
+                i = int(dates.searchsorted(pd.Timestamp(RELEASE_DATES[y])))
+                lr[i] += np.log(1.15)                       # a 15% jump on release day
+        frames[tk] = _frame(dates, 20 * np.exp(np.cumsum(lr)), rng, 5e5)
+        for y in range(2014, 2026):
+            aw.append({"key": str(cik), "ticker": tk, "cik": cik, "delisting_date": pd.NaT,
+                       "action_date": pd.Timestamp(f"{y}-01-15"), "available_date": pd.Timestamp(f"{y}-01-15"),
+                       "amount": 3e7, "areas": [area], "recipient_name": tk})
+    sig = pd.DataFrame([{"request_fy": y, "area": a, "rising": a in ris, "signal_date": pd.Timestamp(f"{y - 1}-07-01")}
+                        for y, ris in rising_by_year.items() for a in areas])
+    out = window_rows(sig, pd.DataFrame(aw), StubFundamentals({}, shares), DictProvider(frames), STAGE_CFG,
+                      log=lambda *a: None)
+    s = summarize(out, sig, STAGE_CFG)
+    assert s["release"]["passes_95pct"] and not s["pre"]["passes_95pct"]
+    assert "earlier sources" in s["reading"]

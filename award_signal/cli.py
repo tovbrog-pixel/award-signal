@@ -4,6 +4,7 @@
     match    match award recipients to SEC-listed companies
     widen    stage 2 version 2 data: subsidiaries, SBIR, SAM award notices (no returns)
     backtest stages 2 and 3 (--rules v1 or v2)
+    timing   did rising-area companies move before the 1 July entry? (version 2 data)
     run      build events, run the event study, write output/report.html
     demo     run the whole pipeline on synthetic data (no internet needed)
 """
@@ -244,6 +245,47 @@ def cmd_widen(cfg: dict) -> None:
     print(f"Saved data/v2_awards.csv and {out / 'match_review.csv'} (no returns computed)")
 
 
+def _v2_awards(cfg: dict) -> pd.DataFrame:
+    import yaml
+
+    data = Path(cfg["data_dir"])
+    awards = pd.read_csv(data / "v2_awards.csv", parse_dates=["action_date", "available_date", "delisting_date"],
+                         dtype={"key": str, "ticker": str}, keep_default_na=False, na_values=[""])
+    awards["areas"] = awards["areas"].fillna("").map(lambda x: [a for a in str(x).split(";") if a])
+    excl = yaml.safe_load(Path("match_exclusions_v2.yaml").read_text(encoding="utf-8")) or {}
+    drop = {int(e["cik"]) for e in excl.get("exclude", []) or []}
+    drop_names = {str(e["name"]) for e in excl.get("exclude_recipients", []) or []}
+    print(f"Excluding {len(drop)} companies and {len(drop_names)} recipient names listed in match_exclusions_v2.yaml")
+    return awards[~awards["cik"].astype(int).isin(drop) & ~awards["recipient_name"].isin(drop_names)]
+
+
+def cmd_timing(cfg: dict) -> None:
+    """Timing check: rising-area companies before, at and after the budget release (no costs)."""
+    import json
+
+    from .sec import Fundamentals
+    from .timing import summarize, window_rows
+
+    out = Path(cfg["output_dir"]) / "timing"
+    out.mkdir(parents=True, exist_ok=True)
+    signals = pd.read_csv(Path(cfg["output_dir"]) / "budget" / "areas_by_year.csv", parse_dates=["signal_date"])
+    signals = signals[signals["request_fy"] >= int(cfg["stages"]["first_request_fy"])]
+    awards = _v2_awards(cfg)
+    rows = window_rows(signals, awards, Fundamentals(_http(cfg, "sec")), make_provider(cfg), cfg)
+    rows.to_csv(out / "window_rows.csv", index=False)
+    summary = {"author": "Tov Binyamin Brog", **summarize(rows, signals, cfg)}
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+    for w in ("pre", "release", "drift"):
+        r = summary[w]
+        if r.get("companies"):
+            print(f"{w:8s} rising-area companies {r['companies']:3d}, mean excess {r['actual_mean_net_excess']:+.3f}, "
+                  f"random areas {r['placebo_mean']:+.3f}, beat {r['share_of_placebos_beaten']:.0%} of draws")
+        else:
+            print(f"{w:8s} no rising-area companies with prices")
+    print("Reading:", summary["reading"])
+    print(f"Saved {out / 'summary.json'}")
+
+
 def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
     import json
@@ -270,14 +312,7 @@ def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
         awards = company_awards(raw, index, areas)
     else:
         http = _http(cfg, "sec")
-        awards = pd.read_csv(data / "v2_awards.csv", parse_dates=["action_date", "available_date", "delisting_date"],
-                             dtype={"key": str, "ticker": str}, keep_default_na=False, na_values=[""])
-        awards["areas"] = awards["areas"].fillna("").map(lambda x: [a for a in str(x).split(";") if a])
-        excl = yaml.safe_load(Path("match_exclusions_v2.yaml").read_text(encoding="utf-8")) or {}
-        drop = {int(e["cik"]) for e in excl.get("exclude", []) or []}
-        drop_names = {str(e["name"]) for e in excl.get("exclude_recipients", []) or []}
-        print(f"Excluding {len(drop)} companies and {len(drop_names)} recipient names listed in match_exclusions_v2.yaml")
-        awards = awards[~awards["cik"].astype(int).isin(drop) & ~awards["recipient_name"].isin(drop_names)]
+        awards = _v2_awards(cfg)
     print(f"{len(awards):,} award rows matched to {awards['key'].nunique():,} public companies")
     pos = build_positions(signals, awards, Fundamentals(http), make_provider(cfg), cfg)
     pos.to_csv(out / "positions.csv", index=False)
@@ -371,7 +406,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "run", "demo"])
     ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
     ap.add_argument("--years", help="notices only: filter just these fiscal years (e.g. 2021,2022), no scan")
     ap.add_argument("--config", default="config.yaml")
@@ -392,6 +427,6 @@ def main(argv=None) -> None:
     if args.no_ratio:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
-     "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg),
+     "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg), "timing": lambda: cmd_timing(cfg),
      "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()
