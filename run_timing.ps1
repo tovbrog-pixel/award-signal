@@ -1,9 +1,9 @@
 # Award Signal - timing check around the budget release
 # Author: Tov Binyamin Brog
 #
-# Start it by double-clicking run_timing.bat. It refreshes the stage 1 area
-# flags from the saved budget files, finds exposed companies, downloads their
-# prices and SEC share counts, and writes output\timing\summary.json.
+# Start it by double-clicking run_timing.bat. It scores companies in
+# rising budget areas before, at and after each budget release, and writes
+# output\timing\summary.json.
 
 $ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
