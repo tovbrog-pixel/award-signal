@@ -65,8 +65,9 @@ def _find_header(raw: pd.DataFrame) -> int | None:
     for i in range(min(40, len(raw))):
         cells = [str(c).lower() for c in raw.iloc[i].tolist()]
         joined = " | ".join(cells)
+        years = "fy" in joined or any(re.match(r"(19|20)\d{2}\s+(amount|quantity)", c) for c in cells)
         if ("program element" in joined or "line item" in joined or "budget line" in joined
-                or re.search(r"\bpe\b|\bbli\b", joined)) and "fy" in joined:
+                or re.search(r"\bpe\b|\bbli\b", joined)) and years:
             return i
     return None
 
@@ -74,6 +75,8 @@ def _find_header(raw: pd.DataFrame) -> int | None:
 def _labels(raw: pd.DataFrame, h: int) -> list[str]:
     """Header labels, merging up to two rows below when they carry text (multi-row headers)."""
     labels = [str(c) if pd.notna(c) else "" for c in raw.iloc[h].tolist()]
+    # FY2009 files label years bare ("2008\nAmount"); give them the FY prefix the rest of the code expects
+    labels = [re.sub(r"^\s*((?:19|20)\d{2})\s+(amount|quantity)", r"FY \1 \2", lab, flags=re.I) for lab in labels]
     for extra in (1, 2):
         if h + extra >= len(raw):
             break
