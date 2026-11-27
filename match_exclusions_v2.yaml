@@ -1,11 +1,60 @@
-# Stage 2, version 2: companies left out of the backtest
+# Stage 2, version 2: companies and recipient names left out of the backtest
 # Author: Tov Binyamin Brog
 #
-# Each entry is a public company that the automatic rules matched to award
-# recipients that are a different business (a shared or former name). The list
-# is written from data and SEC descriptions only, before any version 2 return
-# is computed, and is frozen with the date below. Changing it after the
-# backtest runs starts version 3.
+# Each entry is a public company (or one award recipient name) that the automatic rules
+# matched to a different business through a shared or former name. Written from
+# output/stages_v2/match_review.csv and SEC company descriptions only, before any
+# version 2 return was computed. Changing it after the backtest runs starts version 3.
 
-frozen: null
-exclude: []
+frozen: "2026-11-27"
+exclude:
+  - {cik: 1806837, ticker: VERX, reason: "Vertex Aerospace and Vertex Modernization are private contractors (now part of V2X), unrelated to Vertex Inc tax software"}
+  - {cik: 1670076, ticker: ULCC, reason: "Frontier Electronic Systems and Frontier Technology are unrelated to Frontier Airlines"}
+  - {cik: 31107, ticker: EML, reason: "Eastern Airlines, Eastern Construction & Electric, Eastern Shipbuilding are unrelated to The Eastern Co"}
+  - {cik: 50725, ticker: GFF, reason: "Griffon Aerospace (target drones) is unrelated to Griffon Corp"}
+  - {cik: 1116132, ticker: TPR, reason: "Tapestry Solutions is a Boeing subsidiary, unrelated to Tapestry Inc"}
+  - {cik: 1916416, ticker: INTJ, reason: "Intelligent Decisions, Intelligent Software Solutions, Intelligent Waves are unrelated to Intelligent Group"}
+  - {cik: 84748, ticker: ROG, reason: "Rogers Group Inc (construction aggregates) is unrelated to Rogers Corp"}
+  - {cik: 2028707, ticker: MRLN, reason: "Merlin Petroleum is unrelated; Merlin Labs listed only in 2025"}
+  - {cik: 46989, ticker: HPC, reason: "Hercules Fence Co is unrelated to Hercules Inc"}
+  - {cik: 709283, ticker: QMCO, reason: "Quantum Imaging, Quantum Spatial, Quantum Group are unrelated to Quantum Corp"}
+  - {cik: 1114483, ticker: ITGR, reason: "Integer Technologies LLC is unrelated to Integer Holdings"}
+  - {cik: 1285785, ticker: MOS, reason: "Mosaic Health LLC is unrelated to The Mosaic Co"}
+  - {cik: 1031283, ticker: ENTU, reason: "Entrust Manufacturing Technologies is unrelated to Entrust Inc"}
+  - {cik: 1570585, ticker: LBTYA, reason: "Liberty Global Logistics (shipping) is unrelated to Liberty Global"}
+  - {cik: 92472, ticker: SWWC, reason: "Southwest Water Design LLC is unrelated to Southwest Water Co"}
+  - {cik: 1880319, ticker: PRM, reason: "Perimeter Security Partners is unrelated to Perimeter Group"}
+  - {cik: 2027262, ticker: FTRKF, reason: "Fast Track Amphibian and Fast Track Drugs & Biologics are unrelated to Fast Track Group"}
+  - {cik: 1506983, ticker: GCTK, reason: "Integrity Applications of Chantilly is unrelated to Glucotrack (former name Integrity Applications)"}
+  - {cik: 1626644, ticker: ODYY, reason: "Odyssey International (construction) is unrelated to Odyssey Health"}
+  - {cik: 887151, ticker: CAPS, reason: "Capstone Corp is unrelated to Capstone Holding"}
+  - {cik: 1421876, ticker: LKFT, reason: "Galapagos LLC is unrelated to Lakefront Biotherapeutics (former name Galapagos)"}
+  - {cik: 1699880, ticker: AMLIF, reason: "American Lithium Energy Corp is unrelated to American Lithium Corp"}
+  - {cik: 109177, ticker: SPB, reason: "Zapata Inc (SBIR) is unrelated to Spectrum Brands (former name Zapata)"}
+  - {cik: 1830043, ticker: BMBL, reason: "Geneva Technologies (SBIR) does not match a Bumble subsidiary of the same name"}
+  - {cik: 924822, ticker: MLR, reason: "Century Inc (SBIR) does not match the Miller Industries subsidiary of the same name"}
+  - {cik: 813828, ticker: VIACP, reason: "Thunder Inc does not match the Paramount subsidiary of the same name"}
+  - {cik: 1487952, ticker: VPG, reason: "Dynamic Systems Inc (DoD awardee) does not match the VPG subsidiary of the same name"}
+  - {cik: 1122976, ticker: AVNT, reason: "Conexus Inc does not match the Avient subsidiary of the same name"}
+  - {cik: 1169988, ticker: WIFI, reason: "The Concourse Group LLC does not match the Boingo subsidiary of the same name"}
+  - {cik: 879585, ticker: ATNI, reason: "Vibrant Corp (SBIR) does not match the ATN subsidiary of the same name"}
+  - {cik: 76605, ticker: PATK, reason: "Structural Composites Inc (SBIR) does not match the Patrick subsidiary of the same name"}
+  - {cik: 908255, ticker: BWA, reason: "Polycharge America (SBIR) does not match the BorgWarner subsidiary of the same name"}
+  - {cik: 77360, ticker: PNR, reason: "Nano Terra Inc (SBIR) does not match the Pentair subsidiary of the same name"}
+  - {cik: 277595, ticker: EGN, reason: "Energen Inc (SBIR firm) is unrelated to Energen Corp (oil and gas)"}
+  - {cik: 1525306, ticker: MEGR, reason: "Metech Inc (SBIR) is unrelated to Metech Group"}
+  - {cik: 1922446, ticker: DEC, reason: "Diversified Energy Corporation (SBIR) is unrelated to Diversified Energy Co"}
+  - {cik: 1460329, ticker: FLNT, reason: "Fluent Inc (CFD software, SBIR) is unrelated to Fluent Inc (advertising)"}
+  - {cik: 2071489, ticker: YSGL, reason: "Yellowstone Scientific Instruments and Yellowstone Electric are unrelated to Yellowstone Group"}
+  - {cik: 1977837, ticker: USDW, reason: "Made In Space Inc is unrelated to Made In USA Inc"}
+  - {cik: 2029586, ticker: BLNH, reason: "Blue Line Engineering is unrelated to Blue Line Holdings"}
+  - {cik: 888295, ticker: CREAF, reason: "Creative Technology Applications is unrelated to Creative Technology Ltd"}
+  - {cik: 1847409, ticker: HITI, reason: "High Tide Associates is unrelated to High Tide Inc"}
+exclude_recipients:
+  - {name: "The State of California", reason: "parsed from an Exhibit 21 heading, not a subsidiary"}
+  - {name: "Brunswick and Topsham Water District", reason: "a Maine water utility, not Brunswick Corp"}
+  - {name: "Orion Government Services LLC", reason: "not an Orion Group subsidiary"}
+  - {name: "Orion Construction Corp", reason: "not shown as an Orion Group subsidiary"}
+  - {name: "Orion Industrial Construction LLC", reason: "not shown as an Orion Group subsidiary"}
+  - {name: "Nova Group Inc.-Underground Construction Co. Inc", reason: "Nova Group (Navy construction) is not a Quanta subsidiary"}
+  - {name: "Coherent Technical Services Inc", reason: "unrelated to Coherent Corp"}
