@@ -119,3 +119,66 @@ def test_usaspending_normalization():
     out = normalize_usaspending(raw, CFG)
     assert out["action_date"].iloc[0] == pd.Timestamp("2018-02-01")   # base obligation date preferred
     assert out["signal_date"].iloc[0] == pd.Timestamp("2018-05-02")
+
+
+def test_new_awards_only_request():
+    from award_signal.awards import request_body
+    cfg = {"awards": {**CFG["awards"], "award_type_codes": ["A"], "awarding_agency": "Department of Defense"}}
+    body = request_body(cfg, "2018-01-01", "2018-01-31", ["Award ID"], 1, new_only=True)
+    assert body["filters"]["time_period"][0]["date_type"] == "new_awards_only"
+    body = request_body(cfg, "2018-01-01", "2018-01-31", ["Award ID"], 1, new_only=False)
+    assert "date_type" not in body["filters"]["time_period"][0]
+
+
+def test_parse_sec_and_alpha_vantage_files():
+    from award_signal.sec import parse_all_names, parse_av_delisted
+    names = parse_all_names("#1 A LIFESAFER HOLDINGS, INC.:0001509607:\nODD: NAME CORP:0000000042:\njunk line\n")
+    assert list(names["cik"]) == [1509607, 42]
+    assert names["sec_title"].iloc[1] == "ODD: NAME CORP"
+    av = parse_av_delisted("symbol,name,exchange,assetType,ipoDate,delistingDate,status\n"
+                           "GONE,Gone Systems Inc,NYSE,Stock,2010-01-01,2019-06-30,Delisted\n"
+                           "GONEW,Gone Warrant,NYSE,ETF,2010-01-01,2019-06-30,Delisted\n")
+    assert list(av["ticker"]) == ["GONE"]
+    assert av["delisting_date"].iloc[0] == pd.Timestamp("2019-06-30")
+
+
+def test_match_finds_delisted_company(tmp_path):
+    from award_signal.matching import load_map
+    tickers = pd.DataFrame({"cik": [1], "ticker": ["AAA"], "sec_title": ["ALPHA SYSTEMS INC"]})
+    all_names = pd.DataFrame({"sec_title": ["ALPHA SYSTEMS INC", "GONE SYSTEMS INC", "PRIVATE WIDGETS LLC"],
+                              "cik": [1, 77, 88]})
+    delisted = pd.DataFrame({"ticker": ["GONE"], "name": ["Gone Systems, Inc."],
+                             "delisting_date": [pd.Timestamp("2019-06-30")]})
+    recips = pd.Series(["Gone Systems Inc", "Private Widgets, LLC"])
+    cand = build_candidates(recips, tickers, all_names, delisted).set_index("recipient_name")
+    assert cand.loc["Gone Systems Inc", "ticker"] == "GONE"
+    assert cand.loc["Gone Systems Inc", "confirmed"] == "Y"
+    assert cand.loc["Private Widgets, LLC", "ticker"] == ""
+    assert cand.loc["Private Widgets, LLC", "confirmed"] == ""
+    cand.reset_index().to_csv(tmp_path / "recipient_map_candidates.csv", index=False)
+    m = load_map(tmp_path)
+    assert list(m["ticker"]) == ["GONE"]                      # no-ticker rows are left out
+    assert m["delisting_date"].iloc[0] == pd.Timestamp("2019-06-30")
+
+
+def test_worst_case_and_delisting_statuses():
+    from award_signal.study import worst_case
+    res, gate, placebo = _study(0.15, seed=1)
+    statuses = set(res["status"])
+    assert "stopped trading during hold" in statuses or "no price data" in statuses
+    wc = worst_case(res, CFG)
+    assert wc["unpriced_trades"] > 0
+    assert wc["mean_net_excess"] < res.loc[res["status"] == "traded", "net_excess"].mean()
+
+
+def test_reused_ticker_is_flagged():
+    from award_signal.synthetic import DictProvider
+    dates = pd.bdate_range("2016-01-01", "2022-12-30")
+    px = pd.DataFrame({"open": 10.0, "high": 10.0, "low": 10.0, "close": 10.0, "volume": 1e6}, index=dates)
+    ev = pd.DataFrame([{"ticker": "OLD", "cik": 1, "signal_date": pd.Timestamp("2018-03-01"), "amount": 2e7,
+                        "n_awards": 1, "first_action_date": pd.Timestamp("2017-12-01"),
+                        "delisting_date": pd.Timestamp("2019-01-31"), "recipients": "Old Co",
+                        "revenue": 1e8, "shares_outstanding": 2e7, "award_to_revenue": 0.2,
+                        "passes_ratio": True, "in_cooldown": False}])
+    res = run_study(ev, DictProvider({"OLD": px, "IWM": px}), CFG)
+    assert res["status"].iloc[0] == "ticker reused after delisting"

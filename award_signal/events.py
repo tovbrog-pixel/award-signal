@@ -13,7 +13,11 @@ def build_events(awards: pd.DataFrame, rmap: pd.DataFrame, fundamentals, cfg: di
     ones stay visible for review.
     """
     s = cfg["signal"]
-    m = awards.merge(rmap, on="recipient_name", how="inner")
+    rmap = rmap.copy()
+    if "delisting_date" not in rmap.columns:
+        rmap["delisting_date"] = pd.NaT
+    rmap["delisting_date"] = pd.to_datetime(rmap["delisting_date"], errors="coerce")
+    m = awards.merge(rmap[["recipient_name", "cik", "ticker", "delisting_date"]], on="recipient_name", how="inner")
     if m.empty:
         log("No awards matched a listed company.")
         return pd.DataFrame()
@@ -21,6 +25,7 @@ def build_events(awards: pd.DataFrame, rmap: pd.DataFrame, fundamentals, cfg: di
                  .agg(amount=("amount", "sum"),
                       n_awards=("amount", "size"),
                       first_action_date=("action_date", "min"),
+                      delisting_date=("delisting_date", "max"),
                       recipients=("recipient_name", lambda x: "; ".join(sorted(set(x))))))
     revenues, shares = [], []
     for row in grouped.itertuples(index=False):

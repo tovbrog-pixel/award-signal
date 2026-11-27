@@ -60,13 +60,17 @@ def run_study(events: pd.DataFrame, provider, cfg: dict, delay: int = 0) -> pd.D
     bench = provider.get(cfg["prices"]["benchmark"])
     if bench is None:
         raise RuntimeError(f"No price data for benchmark {cfg['prices']['benchmark']}")
+    bench_last = bench.index[-1]
     frames: dict[str, TickerFrame | None] = {}
+    last_date: dict[str, pd.Timestamp] = {}
     out = []
     for ev in events.itertuples(index=False):
         rec = ev._asdict()
         rec.update(status="", entry_date=pd.NaT, exit_date=pd.NaT, entry_index=np.nan,
                    market_cap=np.nan, adv_dollars=np.nan, ret=np.nan, bench_ret=np.nan,
                    excess=np.nan, cost=np.nan, net_excess=np.nan)
+        delisted_on = pd.Timestamp(getattr(ev, "delisting_date", pd.NaT)) if pd.notna(
+            getattr(ev, "delisting_date", pd.NaT)) else None
         if not ev.passes_ratio:
             rec["status"] = "below ratio"
         elif ev.in_cooldown:
@@ -75,24 +79,33 @@ def run_study(events: pd.DataFrame, provider, cfg: dict, delay: int = 0) -> pd.D
             if ev.ticker not in frames:
                 px = provider.get(ev.ticker)
                 frames[ev.ticker] = TickerFrame(px, bench, h) if px is not None and len(px) > h + 21 else None
+                last_date[ev.ticker] = px.index[-1] if px is not None and len(px) else None
             tf = frames[ev.ticker]
             i = tf.entry_index(ev.signal_date, delay) if tf is not None else None
             if tf is None:
                 rec["status"] = "no price data"
-            elif i is None or i < 21 or np.isnan(tf.ret[i]):
+            elif delisted_on is not None and last_date[ev.ticker] > delisted_on + pd.Timedelta(days=30):
+                # prices continue well past the delisting date: another company reused the symbol
+                rec["status"] = "ticker reused after delisting"
+            elif i is None or i < 21:
                 rec["status"] = "outside price history"
             else:
                 mcap = (ev.shares_outstanding or np.nan) * tf.close[i - 1]
-                rec.update(entry_date=tf.dates[i], exit_date=tf.dates[i + h], entry_index=i,
-                           market_cap=mcap, adv_dollars=tf.adv[i])
-                if np.isnan(mcap):
+                stopped = np.isnan(tf.ret[i]) and tf.dates[-1] < bench_last - pd.Timedelta(days=10)
+                rec.update(entry_date=tf.dates[i], market_cap=mcap, adv_dollars=tf.adv[i], entry_index=i)
+                if np.isnan(tf.ret[i]) and not stopped:
+                    rec["status"] = "outside price history"   # hold not finished by end of data
+                elif np.isnan(mcap):
                     rec["status"] = "market cap unknown"
                 elif not (s["min_market_cap"] <= mcap <= s["max_market_cap"]):
                     rec["status"] = "outside market-cap band"
+                elif stopped:
+                    rec["status"] = "stopped trading during hold"
                 else:
                     cost = round_trip_cost(tf.adv[i], cfg)
-                    rec.update(status="traded", ret=tf.ret[i], bench_ret=tf.bench_ret[i],
-                               excess=tf.excess[i], cost=cost, net_excess=tf.excess[i] - cost)
+                    rec.update(status="traded", exit_date=tf.dates[i + h], ret=tf.ret[i],
+                               bench_ret=tf.bench_ret[i], excess=tf.excess[i], cost=cost,
+                               net_excess=tf.excess[i] - cost)
         out.append(rec)
     res = pd.DataFrame(out)
     res["year"] = pd.to_datetime(res["signal_date"]).dt.year
@@ -126,6 +139,31 @@ def gate_check(yearly: pd.DataFrame, cfg: dict) -> dict:
     need = int(cfg["tests"]["min_positive_years"])
     return {"test_years": len(test), "years_beating_benchmark": positive,
             "years_required": need, "passed": positive >= need}
+
+
+UNPRICED = ("no price data", "stopped trading during hold", "ticker reused after delisting")
+
+
+def worst_case(res: pd.DataFrame, cfg: dict) -> dict:
+    """Survivorship check: count every qualifying trade the tool could not price
+    as a total loss (or `tests.worst_case_loss`), then rerun the yearly test.
+    If the signal still passes, missing delisted stocks cannot explain it."""
+    loss = float(cfg["tests"].get("worst_case_loss", -1.0))
+    wc = res.copy()
+    mask = wc["status"].isin(UNPRICED)
+    wc.loc[mask, "net_excess"] = loss
+    wc.loc[mask, "status"] = "traded"
+    yearly = yearly_summary(wc, cfg)
+    traded = wc[wc["status"] == "traded"]
+    return {
+        "assumed_loss": loss,
+        "unpriced_trades": int(mask.sum()),
+        "unpriced_by_reason": res.loc[mask, "status"].value_counts().to_dict(),
+        "trades": int(len(traded)),
+        "mean_net_excess": float(traded["net_excess"].mean()) if len(traded) else None,
+        "gate": gate_check(yearly, cfg),
+        "yearly": yearly,
+    }
 
 
 def placebo_test(res: pd.DataFrame, cfg: dict) -> dict:

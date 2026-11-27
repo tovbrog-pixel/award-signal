@@ -13,6 +13,8 @@ import pandas as pd
 from .net import Http
 
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
+ALL_NAMES_URL = "https://www.sec.gov/Archives/edgar/cik-lookup-data.txt"
+AV_DELISTED_URL = "https://www.alphavantage.co/query?function=LISTING_STATUS&state=delisted&apikey={key}"
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 
 REVENUE_CONCEPTS = [
@@ -95,3 +97,37 @@ def shares_outstanding_asof(facts: dict, date: pd.Timestamp) -> float | None:
 
 def save_tickers(df: pd.DataFrame, path: str | Path) -> None:
     df.to_csv(path, index=False)
+
+
+def parse_all_names(text: str) -> pd.DataFrame:
+    """Parse SEC's cik-lookup-data.txt: one 'NAME:CIK:' entry per line, covering
+    every EDGAR filer, including companies acquired or delisted long ago."""
+    names, ciks = [], []
+    for line in text.splitlines():
+        parts = line.rstrip().rsplit(":", 2)
+        if len(parts) == 3 and parts[1].isdigit() and parts[0].strip():
+            names.append(parts[0].strip())
+            ciks.append(int(parts[1]))
+    return pd.DataFrame({"sec_title": names, "cik": ciks})
+
+
+def load_all_names(http: Http) -> pd.DataFrame:
+    return parse_all_names(http.text(ALL_NAMES_URL))
+
+
+def parse_av_delisted(text: str) -> pd.DataFrame:
+    """Parse Alpha Vantage LISTING_STATUS (state=delisted) CSV."""
+    from io import StringIO
+
+    df = pd.read_csv(StringIO(text))
+    if "symbol" not in df.columns:  # error or rate-limit message instead of CSV
+        raise RuntimeError(f"Alpha Vantage did not return a listing file: {text[:200]}")
+    df = df[df.get("assetType", "Stock") == "Stock"] if "assetType" in df.columns else df
+    df["delistingDate"] = pd.to_datetime(df.get("delistingDate"), errors="coerce")
+    df["symbol"] = df["symbol"].astype(str).str.upper().str.replace(".", "-", regex=False)
+    return df.rename(columns={"symbol": "ticker", "delistingDate": "delisting_date"})[
+        ["ticker", "name", "delisting_date"]]
+
+
+def load_av_delisted(http: Http, key: str) -> pd.DataFrame:
+    return parse_av_delisted(http.text(AV_DELISTED_URL.format(key=key)))

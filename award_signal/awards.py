@@ -40,30 +40,48 @@ def _month_windows(start: str, end: str):
         cur = nxt + pd.Timedelta(days=1)
 
 
+def request_body(cfg: dict, w_start: str, w_end: str, fields: list, page: int, new_only: bool) -> dict:
+    a = cfg["awards"]
+    period = {"start_date": w_start, "end_date": w_end}
+    if new_only:
+        # Keep only awards whose first (base) transaction falls in the window,
+        # so a modification to an old contract never shows up as a new award.
+        period["date_type"] = "new_awards_only"
+    return {
+        "filters": {
+            "award_type_codes": a["award_type_codes"],
+            "agencies": [{"type": "awarding", "tier": "toptier", "name": a["awarding_agency"]}],
+            "time_period": [period],
+            "award_amounts": [{"lower_bound": a["min_amount"]}],
+        },
+        "fields": fields,
+        "page": page,
+        "limit": 100,
+        "sort": "Award Amount",
+        "order": "desc",
+    }
+
+
 def fetch_usaspending(cfg: dict, http: Http, log=print) -> pd.DataFrame:
     a = cfg["awards"]
     fields = BASE_FIELDS + [DATE_FIELD]
+    new_only = bool(a.get("new_awards_only", True))
     rows = []
     for w_start, w_end in _month_windows(a["start_date"], a["end_date"]):
         page = 1
         while True:
-            body = {
-                "filters": {
-                    "award_type_codes": a["award_type_codes"],
-                    "agencies": [{"type": "awarding", "tier": "toptier", "name": a["awarding_agency"]}],
-                    "time_period": [{"start_date": w_start, "end_date": w_end}],
-                    "award_amounts": [{"lower_bound": a["min_amount"]}],
-                },
-                "fields": fields,
-                "page": page,
-                "limit": 100,
-                "sort": "Award Amount",
-                "order": "desc",
-            }
+            body = request_body(cfg, w_start, w_end, fields, page, new_only)
             try:
                 data = http.json("POST", USASPENDING_URL, body)
             except HttpError as err:
-                if err.status == 400 and DATE_FIELD in fields:
+                if err.status != 400:
+                    raise
+                if new_only and "date_type" in str(err):
+                    log("USAspending rejected the new-awards-only filter; using all action dates. "
+                        "The base-date check below still drops old contracts.")
+                    new_only = False
+                    continue
+                if DATE_FIELD in fields:
                     log(f"USAspending rejected '{DATE_FIELD}'; falling back to 'Start Date'.")
                     fields = list(BASE_FIELDS)
                     continue

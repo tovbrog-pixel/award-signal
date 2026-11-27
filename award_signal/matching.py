@@ -1,8 +1,15 @@
 """Match contract recipient names to SEC-listed companies.
 
-Exact matches on a normalized name are accepted automatically. Close matches
-go to a candidates file for a person to confirm, because a wrong match puts a
-fake signal into the test.
+Pass 1 checks SEC's current ticker list: exact matches on a normalized name
+are accepted, close matches wait for a person to confirm.
+
+Pass 2 handles recipients pass 1 missed. It looks for an exact name match in
+SEC's full filer list, which still holds companies acquired or delisted since
+their awards. If an Alpha Vantage delisted list is supplied, the company's old
+ticker and delisting date come from it.
+
+A wrong match puts a fake signal into the test, so anything less than an exact
+name match stays unconfirmed.
 """
 
 from __future__ import annotations
@@ -19,6 +26,9 @@ SUFFIXES = {
     "DBA", "USA", "US", "NA",
 }
 
+COLUMNS = ["recipient_name", "cik", "ticker", "sec_title", "score", "confirmed", "source",
+           "delisting_date", "note"]
+
 
 def normalize(name: str) -> str:
     if not isinstance(name, str):
@@ -29,27 +39,64 @@ def normalize(name: str) -> str:
     return " ".join(words)
 
 
-def build_candidates(recipients: pd.Series, tickers: pd.DataFrame, cutoff: float = 0.88) -> pd.DataFrame:
-    t = tickers.copy()
-    t["norm"] = t["sec_title"].map(normalize)
-    t = t[t["norm"] != ""].drop_duplicates("norm")
-    by_norm = t.set_index("norm")
-    norms = list(by_norm.index)
+def _index_by_norm(df: pd.DataFrame, col: str) -> dict[str, list[int]]:
+    out: dict[str, list[int]] = {}
+    for i, n in enumerate(df[col].map(normalize)):
+        if n:
+            out.setdefault(n, []).append(i)
+    return out
+
+
+def build_candidates(recipients: pd.Series, tickers: pd.DataFrame,
+                     all_names: pd.DataFrame | None = None,
+                     delisted: pd.DataFrame | None = None,
+                     cutoff: float = 0.88) -> pd.DataFrame:
+    t = tickers.reset_index(drop=True)
+    t_idx = _index_by_norm(t, "sec_title")
+    t_norms = list(t_idx)
+    a_idx = _index_by_norm(all_names.reset_index(drop=True), "sec_title") if all_names is not None else {}
+    d = delisted.reset_index(drop=True) if delisted is not None else None
+    d_idx = _index_by_norm(d, "name") if d is not None else {}
+
     out = []
     for name in sorted(set(recipients.dropna())):
         n = normalize(name)
         if not n:
             continue
-        if n in by_norm.index:
-            r = by_norm.loc[n]
-            out.append((name, int(r["cik"]), r["ticker"], r["sec_title"], 1.0, "Y"))
+        # pass 1: current SEC ticker list
+        if n in t_idx:
+            r = t.iloc[t_idx[n][0]]
+            out.append([name, int(r["cik"]), r["ticker"], r["sec_title"], 1.0, "Y", "sec_tickers", None, ""])
             continue
-        close = difflib.get_close_matches(n, norms, n=1, cutoff=cutoff)
+        close = difflib.get_close_matches(n, t_norms, n=1, cutoff=cutoff)
         if close:
-            r = by_norm.loc[close[0]]
-            score = difflib.SequenceMatcher(None, n, close[0]).ratio()
-            out.append((name, int(r["cik"]), r["ticker"], r["sec_title"], round(score, 3), ""))
-    return pd.DataFrame(out, columns=["recipient_name", "cik", "ticker", "sec_title", "score", "confirmed"])
+            r = t.iloc[t_idx[close[0]][0]]
+            score = round(difflib.SequenceMatcher(None, n, close[0]).ratio(), 3)
+            out.append([name, int(r["cik"]), r["ticker"], r["sec_title"], score, "", "sec_tickers",
+                        None, "close match: check it is the same company"])
+            continue
+        # pass 2: every EDGAR filer, then the delisted ticker list
+        if n not in a_idx:
+            continue
+        rows = all_names.iloc[a_idx[n]]
+        ciks = sorted(set(rows["cik"].astype(int)))
+        cik, title = ciks[0], rows.iloc[0]["sec_title"]
+        note = "" if len(ciks) == 1 else f"{len(ciks)} SEC filers share this name: {ciks}"
+        hits = d.iloc[d_idx[n]] if n in d_idx else None
+        if hits is not None and len(hits) == 1 and len(ciks) == 1:
+            h = hits.iloc[0]
+            out.append([name, cik, h["ticker"], title, 1.0, "Y", "sec_all_names+av_delisted",
+                        h["delisting_date"], ""])
+        elif hits is not None and len(hits) > 0:
+            h = hits.sort_values("delisting_date").iloc[-1]
+            out.append([name, cik, h["ticker"], title, 1.0, "", "sec_all_names+av_delisted",
+                        h["delisting_date"], (note + "; " if note else "") +
+                        f"{len(hits)} delisted tickers share this name: check which one"])
+        else:
+            out.append([name, cik, "", title, 1.0, "", "sec_all_names", None,
+                        (note + "; " if note else "") +
+                        "SEC filer with no current ticker: may be private, or add its old ticker by hand"])
+    return pd.DataFrame(out, columns=COLUMNS)
 
 
 def load_map(data_dir: str | Path) -> pd.DataFrame:
@@ -59,6 +106,10 @@ def load_map(data_dir: str | Path) -> pd.DataFrame:
     src = reviewed if reviewed.exists() else data_dir / "recipient_map_candidates.csv"
     if not src.exists():
         raise FileNotFoundError("Run `python -m award_signal match` first.")
-    df = pd.read_csv(src, dtype={"confirmed": str})
+    df = pd.read_csv(src, dtype={"confirmed": str, "ticker": str})
     df = df[df["confirmed"].fillna("").str.upper().str.startswith("Y")]
-    return df[["recipient_name", "cik", "ticker"]]
+    df = df[df["ticker"].fillna("").str.strip() != ""]
+    if "delisting_date" not in df.columns:
+        df["delisting_date"] = pd.NaT
+    df["delisting_date"] = pd.to_datetime(df["delisting_date"], errors="coerce")
+    return df[["recipient_name", "cik", "ticker", "delisting_date"]]

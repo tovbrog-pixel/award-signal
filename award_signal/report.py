@@ -34,12 +34,15 @@ def _table(df: pd.DataFrame) -> str:
 
 
 def write_outputs(out_dir: str | Path, res: pd.DataFrame, delayed: pd.DataFrame,
-                  yearly: pd.DataFrame, gate: dict, placebo: dict, cfg: dict) -> dict:
+                  yearly: pd.DataFrame, gate: dict, placebo: dict, cfg: dict,
+                  wc: dict | None = None) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     drop = [c for c in ("entry_index",) if c in res.columns]
     res.drop(columns=drop).to_csv(out / "events.csv", index=False)
     yearly.to_csv(out / "yearly.csv", index=False)
+    if wc is not None:
+        wc["yearly"].to_csv(out / "yearly_worst_case.csv", index=False)
 
     traded = res[res["status"] == "traded"]
     d_traded = delayed[delayed["status"] == "traded"]
@@ -63,6 +66,7 @@ def write_outputs(out_dir: str | Path, res: pd.DataFrame, delayed: pd.DataFrame,
         # A 5-of-8-years rule alone passes pure noise about 36% of the time
         # (binomial, p = 0.5), so Phase 1 also requires the placebo test.
         "phase1_passed": bool(gate["passed"] and placebo.get("passes_95pct", False)),
+        "survivorship_check": None if wc is None else {k: v for k, v in wc.items() if k != "yearly"},
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     (out / "report.html").write_text(_html(summary, yearly, traded), encoding="utf-8")
@@ -98,6 +102,21 @@ def _html(summary: dict, yearly: pd.DataFrame, traded: pd.DataFrame) -> str:
         f"With signals {d['delay_trading_days']} trading days late: {d['trades']} trades, "
         f"mean net excess {_pct(d['mean_net_excess'])}." if d["mean_net_excess"] is not None else ""
     )
+    w = summary.get("survivorship_check")
+    if w and w["unpriced_trades"]:
+        wg = w["gate"]
+        wc_line = (
+            f"Survivorship check: {w['unpriced_trades']} qualifying trades had no usable prices "
+            f"(usually delisted stocks). Counted as {w['assumed_loss']:.0%} each, "
+            f"{wg['years_beating_benchmark']} of {wg['test_years']} test years still beat the benchmark "
+            f"and the mean net excess is {_pct(w['mean_net_excess'])}. "
+            + ("The signal survives the worst case." if wg["passed"] else
+               "The signal does not survive the worst case, so delisted-stock prices matter here.")
+        )
+    elif w:
+        wc_line = "Survivorship check: every qualifying trade had usable prices."
+    else:
+        wc_line = ""
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="author" content="{AUTHOR}">
@@ -122,6 +141,7 @@ compared with {summary['benchmark']}, after estimated spread and market-impact c
 hit rate {'' if summary['hit_rate'] is None else f"{summary['hit_rate']:.0%}"}.</p>
 <p>Placebo test: {placebo_line}</p>
 <p>{delay_line}</p>
+<p>{wc_line}</p>
 <h2>By year</h2>
 {_table(y)}
 <h2>Trades (newest 200)</h2>

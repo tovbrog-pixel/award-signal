@@ -21,7 +21,7 @@ from .matching import build_candidates, load_map
 from .net import Http
 from .prices import make_provider
 from .report import write_outputs
-from .study import gate_check, placebo_test, run_study, yearly_summary
+from .study import gate_check, placebo_test, run_study, worst_case, yearly_summary
 
 
 def analyze(awards: pd.DataFrame, rmap: pd.DataFrame, fundamentals, provider, cfg: dict,
@@ -37,11 +37,15 @@ def analyze(awards: pd.DataFrame, rmap: pd.DataFrame, fundamentals, provider, cf
     yearly = yearly_summary(res, cfg)
     gate = gate_check(yearly, cfg)
     placebo = placebo_test(res, cfg)
-    summary = write_outputs(out_dir, res, delayed, yearly, gate, placebo, cfg)
+    wc = worst_case(res, cfg)
+    summary = write_outputs(out_dir, res, delayed, yearly, gate, placebo, cfg, wc)
     log(f"Trades: {summary['trades']}; yearly test {gate['years_beating_benchmark']} of {gate['test_years']} "
         f"years beat the benchmark (needs {gate['years_required']})")
     if "share_of_placebos_beaten" in placebo:
         log(f"Placebo: real signals beat {placebo['share_of_placebos_beaten']:.0%} of random-date portfolios")
+    wg = wc["gate"]
+    log(f"Survivorship check: {wc['unpriced_trades']} unpriced trades counted as total losses; "
+        f"{wg['years_beating_benchmark']} of {wg['test_years']} test years still beat the benchmark")
     log(f"Phase 1 {'PASSED' if summary['phase1_passed'] else 'NOT PASSED'} (yearly test and placebo test both required)")
     log(f"Report: {Path(out_dir) / 'report.html'}")
     return summary
@@ -66,17 +70,29 @@ def cmd_awards(cfg: dict) -> None:
 
 
 def cmd_match(cfg: dict) -> None:
-    from .sec import load_tickers
+    from .sec import load_all_names, load_av_delisted, load_tickers
 
     aw = pd.read_csv(Path(cfg["data_dir"]) / "awards.csv")
-    tickers = load_tickers(_http(cfg, "sec"))
-    cand = build_candidates(aw["recipient_name"], tickers)
+    http = _http(cfg, "sec")
+    tickers = load_tickers(http)
+    print("Loading SEC's full filer list (large file, downloaded once)...")
+    all_names = load_all_names(http)
+    delisted = None
+    key = str(cfg.get("alphavantage_api_key") or "").strip()
+    if key:
+        delisted = load_av_delisted(Http(Path(cfg["data_dir"]) / "cache" / "alphavantage", "award-signal"), key)
+        print(f"Alpha Vantage delisted list: {len(delisted):,} stocks")
+    else:
+        print("No alphavantage_api_key in config.yaml: delisted companies will match SEC names but get no ticker.")
+    cand = build_candidates(aw["recipient_name"], tickers, all_names, delisted)
     out = Path(cfg["data_dir"]) / "recipient_map_candidates.csv"
     cand.to_csv(out, index=False)
     exact = int((cand["confirmed"] == "Y").sum())
-    print(f"{len(cand):,} candidate matches ({exact:,} exact) saved to {out}")
-    print("Review the close matches, put Y in 'confirmed' for the right ones, "
-          "and save the file as data/recipient_map.csv. Without that file, only exact matches are used.")
+    gone = int((cand["source"] == "sec_all_names+av_delisted").sum())
+    print(f"{len(cand):,} candidate matches ({exact:,} confirmed automatically; "
+          f"{gone:,} are delisted companies) saved to {out}")
+    print("Review rows with a blank 'confirmed' column (see the 'note' column), put Y in the right ones, "
+          "and save the file as data/recipient_map.csv. Without that file, only automatic matches are used.")
 
 
 def cmd_run(cfg: dict) -> None:

@@ -54,6 +54,31 @@ class Http:
         raise HttpError(0, f"gave up after {retries} tries: {last_err}")
 
 
+    def text(self, url: str, use_cache: bool = True, retries: int = 4) -> str:
+        """GET a text file (CSV, plain text) with the same cache and retry rules."""
+        cp = self._cache_path("TEXT" + url).with_suffix(".txt")
+        if use_cache and cp.exists():
+            return cp.read_text(encoding="utf-8")
+        last_err = None
+        for attempt in range(retries):
+            self._pace()
+            try:
+                resp = self.session.get(url, timeout=300)
+                if resp.status_code == 200:
+                    resp.encoding = resp.encoding or "utf-8"
+                    cp.write_text(resp.text, encoding="utf-8")
+                    return resp.text
+                if resp.status_code in (429, 500, 502, 503, 504):
+                    last_err = f"HTTP {resp.status_code}"
+                    time.sleep(2 ** attempt)
+                    continue
+                raise HttpError(resp.status_code, resp.text[:500])
+            except requests.RequestException as exc:
+                last_err = str(exc)
+                time.sleep(2 ** attempt)
+        raise HttpError(0, f"gave up after {retries} tries: {last_err}")
+
+
 class HttpError(RuntimeError):
     def __init__(self, status: int, text: str):
         super().__init__(f"HTTP {status}: {text}")

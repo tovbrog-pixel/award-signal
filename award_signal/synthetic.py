@@ -36,9 +36,13 @@ def _path(rng, n, drift, vol, start_price):
 
 
 def make_market(seed: int = 1, n_tickers: int = 40, effect: float = 0.15,
-                start: str = "2014-01-01", end: str = "2026-06-30") -> dict:
+                start: str = "2014-01-01", end: str = "2026-06-30", n_delisted: int = 3) -> dict:
     """effect = extra total return spread over the 90 sessions after each
-    qualifying award's signal date (0 switches the planted effect off)."""
+    qualifying award's signal date (0 switches the planted effect off).
+
+    The last `n_delisted` companies stop trading partway through the sample,
+    and one more has no price history at all, so the survivorship check has
+    something to find."""
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range(start, end)
     n = len(dates)
@@ -84,6 +88,11 @@ def make_market(seed: int = 1, n_tickers: int = 40, effect: float = 0.15,
                 log_ret[i + 1: i + 91] += np.log1p(effect) / 90
         close = float(rng.uniform(8, 40)) * np.exp(np.cumsum(log_ret))
         frames[tk] = _frame(dates, close, rng, float(rng.uniform(2e5, 2e6)))
+    for k in range(n_tickers - n_delisted, n_tickers):
+        cut = pd.Timestamp(int(rng.integers(2017, 2025)), int(rng.integers(1, 13)), 15)
+        frames[f"SYN{k:02d}"] = frames[f"SYN{k:02d}"].loc[:cut]
+    if n_delisted:
+        frames.pop(f"SYN{n_tickers - n_delisted - 1:02d}", None)
     return {"awards": aw, "map": pd.DataFrame(mapping), "provider": DictProvider(frames),
             "fundamentals": StubFundamentals(revenue, shares)}
 
