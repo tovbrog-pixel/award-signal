@@ -12,7 +12,10 @@ subsidiaries that carry their own names. Version 2 tries, in order:
               name (the name needs one word of four or more letters that is not
               generic); a one-word company name (six or more letters, not
               generic) counts only when that company also wins awards under its
-              own exact name or works in a defense-related industry (widen.EX21_SIC)
+              own exact name or works in a defense-related industry (widen.EX21_SIC),
+              and only for names from the DoD announcements (added 2026-11-27 after
+              reviewing the first match list, before any return: SBIR names such as
+              "Quantum Design" and "Coherent Technologies" went to unrelated companies)
 3. subsidiary the recipient appears in the company's Exhibit 21 subsidiary list;
               usable only between the filing that first lists it and the next
               sampled filing that drops it
@@ -96,6 +99,7 @@ class Matcher:
                 continue
             if k >= 2 or _distinctive(key):
                 out = self._out(rec, "prefix", key in self.former_keys and key)
+                out["one_word"] = k == 1
                 out["one_word_unconfirmed"] = k == 1 and int(rec["cik"]) not in self.confirmed
                 return [out]
         if n in self.subs:
@@ -105,7 +109,8 @@ class Matcher:
     @staticmethod
     def _out(rec: dict, how: str, former_key=False, valid_from=FAR_PAST, valid_until=FAR_FUTURE) -> dict:
         return {"ticker": rec["ticker"], "cik": int(rec["cik"]), "sec_title": rec["sec_title"],
-                "delisting_date": rec.get("delisting_date"), "match_type": how, "one_word_unconfirmed": False,
+                "delisting_date": rec.get("delisting_date"), "match_type": how, "one_word": False,
+                "one_word_unconfirmed": False,
                 "former_name": former_key or "", "valid_from": valid_from, "valid_until": valid_until}
 
 
@@ -118,13 +123,16 @@ def match_table(names: pd.Series, matcher: Matcher) -> pd.DataFrame:
         for m in matcher.match(name):
             rows.append({"recipient_name": name, **m})
     cols = ["recipient_name", "ticker", "cik", "sec_title", "delisting_date", "match_type",
-            "one_word_unconfirmed", "former_name", "valid_from", "valid_until"]
+            "one_word", "one_word_unconfirmed", "former_name", "valid_from", "valid_until"]
     return pd.DataFrame(rows, columns=cols)
 
 
-def apply_company_rules(mt: pd.DataFrame, info: pd.DataFrame, former: pd.DataFrame, drop_sic) -> pd.DataFrame:
-    """Date former-name matches, drop unconfirmed one-word prefixes outside defense-related
-    industries, then drop companies in excluded industries."""
+def apply_company_rules(mt: pd.DataFrame, info: pd.DataFrame, former: pd.DataFrame, drop_sic,
+                        announcement_names: set | None = None) -> pd.DataFrame:
+    """Date former-name matches, limit one-word prefixes, then drop companies in excluded
+    industries. A one-word prefix counts only for DoD announcement recipients (SBIR and SAM.gov
+    hold thousands of small firms named "Quantum ..." or "Coherent ..."), and, when the company
+    never wins under its own exact name, only in a defense-related industry."""
     from .widen import EX21_SIC, _in
 
     mt = mt.copy()
@@ -144,4 +152,6 @@ def apply_company_rules(mt: pd.DataFrame, info: pd.DataFrame, former: pd.DataFra
     sic = info.set_index("cik")["sic"].to_dict()
     mt["sic"] = mt["cik"].map(sic)
     mt = mt[~(mt["one_word_unconfirmed"].astype(bool) & ~mt["sic"].map(lambda c: _in(c, EX21_SIC)))]
+    if announcement_names is not None:
+        mt = mt[~(mt["one_word"].astype(bool) & ~mt["recipient_name"].isin(announcement_names))]
     return mt[~mt["sic"].map(lambda c: _in(c, drop_sic))].reset_index(drop=True)

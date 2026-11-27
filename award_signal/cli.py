@@ -222,7 +222,8 @@ def cmd_widen(cfg: dict) -> None:
     matcher = Matcher(index, tickers, all_names, subs)
     mt = match_table(sources["recipient_name"], matcher)
     info, former = widen.company_info(http, sorted(mt["cik"].astype(int).unique()))
-    mt = apply_company_rules(mt, info, former, widen.DROP_SIC)
+    mt = apply_company_rules(mt, info, former, widen.DROP_SIC,
+                             set(sources.loc[sources["source"] == "announcements", "recipient_name"]))
     mt.to_csv(data / "v2_matches.csv", index=False)
     aw = company_awards_v2(sources, mt, areas)
     aw.assign(areas=aw["areas"].map(";".join)).to_csv(data / "v2_awards.csv", index=False)
@@ -270,8 +271,9 @@ def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
         awards["areas"] = awards["areas"].fillna("").map(lambda x: [a for a in str(x).split(";") if a])
         excl = yaml.safe_load(Path("match_exclusions_v2.yaml").read_text(encoding="utf-8")) or {}
         drop = {int(e["cik"]) for e in excl.get("exclude", []) or []}
-        print(f"Excluding {len(drop)} companies listed in match_exclusions_v2.yaml")
-        awards = awards[~awards["cik"].astype(int).isin(drop)]
+        drop_names = {str(e["name"]) for e in excl.get("exclude_recipients", []) or []}
+        print(f"Excluding {len(drop)} companies and {len(drop_names)} recipient names listed in match_exclusions_v2.yaml")
+        awards = awards[~awards["cik"].astype(int).isin(drop) & ~awards["recipient_name"].isin(drop_names)]
     print(f"{len(awards):,} award rows matched to {awards['key'].nunique():,} public companies")
     pos = build_positions(signals, awards, Fundamentals(http), make_provider(cfg), cfg)
     pos.to_csv(out / "positions.csv", index=False)
@@ -306,7 +308,7 @@ def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     print(f"{'PASSED' if summary['passed'] else 'NOT PASSED'}. Report: {out / 'report.html'}")
 
 
-def cmd_notices(cfg: dict) -> None:
+def cmd_notices(cfg: dict, years: str | None = None) -> None:
     """Filter SAM.gov archives for sole-source and intent notices, then find the public companies they name."""
     import requests
 
@@ -323,7 +325,8 @@ def cmd_notices(cfg: dict) -> None:
     session = requests.Session()
     session.headers["User-Agent"] = "award-signal research"
     files = []
-    for fy in range(first_fy, last_fy + 1):
+    todo = [int(y) for y in years.split(",")] if years else range(first_fy, last_fy + 1)
+    for fy in todo:
         out = ndir / f"FY{fy}.csv"
         if not out.exists() or not (ndir / f"FY{fy}_awards.csv").exists():
             print(f"Streaming SAM.gov archive FY{fy} (large file; only matching notices are kept)...")
@@ -337,6 +340,8 @@ def cmd_notices(cfg: dict) -> None:
                 print(f"  FY{fy} skipped after three failures; run again later to fill it.")
                 continue
         files.append(out)
+    if years:                                      # --years: filter those archives only
+        return
     http = _http(cfg, "sec")
     tickers = load_tickers(http)
     all_names = load_all_names(http)
@@ -364,6 +369,7 @@ def main(argv=None) -> None:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "run", "demo"])
     ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
+    ap.add_argument("--years", help="notices only: filter just these fiscal years (e.g. 2021,2022), no scan")
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--effect", type=float, default=0.15, help="demo only: planted effect size")
     ap.add_argument("--source", choices=["usaspending", "announcements", "csv"],
@@ -382,6 +388,6 @@ def main(argv=None) -> None:
     if args.no_ratio:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
-     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg),
+     "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg),
      "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

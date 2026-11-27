@@ -133,7 +133,7 @@ STATES = {normalize(s) for s in (
     "Italy Spain Brazil Korea Taiwan").split()} | {"NEW YORK", "NEW JERSEY", "NEW MEXICO", "NEW HAMPSHIRE",
     "NORTH CAROLINA", "SOUTH CAROLINA", "NORTH DAKOTA", "SOUTH DAKOTA", "RHODE ISLAND", "WEST VIRGINIA",
     "DISTRICT OF COLUMBIA", "UNITED KINGDOM", "CAYMAN ISLANDS", "BRITISH VIRGIN ISLANDS", "HONG KONG"}
-HEADINGS = re.compile(r"subsidiar|jurisdiction|incorporat|organiz|percent|ownership|exhibit|name of|"
+HEADINGS = re.compile(r"subsidiar|jurisdiction|incorporat|organiz|percent|ownership|exhibit|name of|^(?:the )?state of|"
                       r"state or|country|doing business|^\(?\d+\)?$", re.I)
 
 

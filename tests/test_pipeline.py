@@ -589,3 +589,16 @@ def test_v2_sources_sbir_sam_and_exposure_lag(tmp_path):
     assert ex["area_dollars"].sum() == 2e6           # the SBIR award is not public until February 2020
     ex = exposure(aw, pd.Timestamp("2020-07-01"), STAGE_CFG)
     assert ex["area_dollars"].sum() == 3.5e6
+
+
+def test_v2_one_word_prefix_only_for_announcement_names():
+    from award_signal.match2 import Matcher, apply_company_rules, match_table
+    from award_signal.widen import DROP_SIC, parse_ex21
+    tickers, all_names, index = _v2_index()
+    names = pd.Series(["Vertex Aerospace LLC", "VERTEX SOLUTIONS, LLC", "Vertex Inc"])
+    mt = match_table(names, Matcher(index, tickers, all_names))
+    info = pd.DataFrame({"cik": [11], "sic": ["3720"]})
+    out = apply_company_rules(mt, info, pd.DataFrame(columns=["cik", "key", "from", "to"]), DROP_SIC,
+                              {"Vertex Aerospace LLC", "Vertex Inc"})
+    assert set(out["recipient_name"]) == {"Vertex Aerospace LLC", "Vertex Inc"}
+    assert parse_ex21("<tr><td>The State of California</td></tr><tr><td>Acme Widgets LLC</td></tr>") == ["Acme Widgets LLC"]
