@@ -15,7 +15,9 @@ def load_config(path: str | Path = "config.yaml") -> dict:
     for key in ("data_dir", "output_dir"):
         p = Path(cfg[key])
         cfg[key] = str(p if p.is_absolute() else base / p)
-    for section, key in (("awards", "csv_path"), ("prices", "csv_dir")):
+    for section, key in (("awards", "csv_path"), ("prices", "csv_dir"), ("budget", "areas_file")):
+        if section not in cfg or key not in cfg[section]:
+            continue
         p = Path(cfg[section][key])
         cfg[section][key] = str(p if p.is_absolute() else base / p)
     Path(cfg["data_dir"]).mkdir(parents=True, exist_ok=True)

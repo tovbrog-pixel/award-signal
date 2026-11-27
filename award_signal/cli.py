@@ -71,7 +71,7 @@ def cmd_awards(cfg: dict) -> None:
 
         print("Reading DoD daily contract announcements from war.gov (four pages at a time)...")
         http = Http(Path(cfg["data_dir"]) / "cache" / "wargov",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) award-signal research", min_interval=0.3)
+                    "award-signal research", min_interval=0.3)
         raw = fetch_announcements(cfg, http)
         raw.to_csv(Path(cfg["data_dir"]) / "announcements_raw.csv", index=False)
         n_mod = int(raw["modification"].sum()) if len(raw) else 0
@@ -132,6 +132,31 @@ def cmd_run(cfg: dict, awards_file: str | None = None, map_file: str | None = No
     analyze(aw, rmap, Fundamentals(_http(cfg, "sec")), make_provider(cfg), cfg, cfg["output_dir"])
 
 
+def cmd_budget(cfg: dict) -> None:
+    """Load DoD budget requests and flag rising technology areas (stage 1)."""
+    import yaml
+
+    from .budget import area_signals, fetch_all, flag_lines, line_summary
+
+    areas = yaml.safe_load(Path(cfg["budget"]["areas_file"]).read_text(encoding="utf-8"))["areas"]
+    http = Http(Path(cfg["data_dir"]) / "cache" / "comptroller", "award-signal research", min_interval=0.5)
+    print("Reading DoD budget requests (R-1 and P-1) from the Comptroller site...")
+    long = fetch_all(cfg, http)
+    if long.empty:
+        sys.exit("No budget files could be read.")
+    data = Path(cfg["data_dir"])
+    long.to_csv(data / "budget_lines_long.csv", index=False)
+    flagged = flag_lines(line_summary(long), cfg)
+    sig = area_signals(flagged, areas, cfg)
+    out = Path(cfg["output_dir"]) / "budget"
+    out.mkdir(parents=True, exist_ok=True)
+    flagged.to_csv(out / "lines_flagged.csv", index=False)
+    sig.to_csv(out / "areas_by_year.csv", index=False)
+    for rfy, g in sig[sig["rising"]].groupby("request_fy"):
+        print(f"  FY{rfy} request (signal {g['signal_date'].iloc[0].date()}): " + ", ".join(g["area"]))
+    print(f"Saved {out / 'areas_by_year.csv'} and {out / 'lines_flagged.csv'}")
+
+
 def cmd_notices(cfg: dict) -> None:
     """Filter SAM.gov archives for sole-source and intent notices, then find the public companies they name."""
     import requests
@@ -188,7 +213,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "run", "demo"])
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--effect", type=float, default=0.15, help="demo only: planted effect size")
     ap.add_argument("--source", choices=["usaspending", "announcements", "csv"],
@@ -207,5 +232,5 @@ def main(argv=None) -> None:
     if args.no_ratio:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
-     "notices": lambda: cmd_notices(cfg),
+     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

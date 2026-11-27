@@ -307,3 +307,79 @@ def test_notice_company_finder_and_filter(tmp_path):
     out = tmp_path / "FY2020.csv"
     assert filter_year(2020, out, Session(), log=lambda *a: None) == 1
     assert list(pd.read_csv(out)["NoticeId"]) == ["a1"]
+
+
+def _xlsx(rows):
+    import io as _io
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active
+    for r in rows:
+        ws.append(r)
+    buf = _io.BytesIO(); wb.save(buf)
+    return buf.getvalue()
+
+
+BUDGET_CFG = {"budget": {"ramp_multiple": 1.5, "ramp_min_request": 20e6, "new_start_min_request": 10e6,
+                         "area_growth": 0.25, "area_min_increase": 100e6, "area_min_line_flags": 3,
+                         "signal_month_day": "07-01"}}
+
+
+def test_budget_parse_and_flags():
+    from award_signal.budget import area_signals, find_files, flag_lines, line_summary, parse_exhibit
+    html = ('<a href="/Portals/45/Documents/defbudget/FY2026/r1_display.xlsx">x</a>'
+            '<a href="/Portals/45/Documents/defbudget/fy2020/r1.xlsx">x</a>'
+            '<a href="/Portals/45/Documents/defbudget/fy2020/r1_display.xlsx">x</a>')
+    assert find_files(html)["r1"].endswith("fy2020/r1.xlsx")       # full file preferred over display
+
+    # FY2020 request, single header row
+    y20 = _xlsx([["Department of Defense FY 2020 Budget"], [],
+                 ["Account", "Account Title", "Organization", "Budget Activity", "Program Element",
+                  "Program Element Title", "FY 2018 Actuals", "FY 2019 Enacted", "FY 2020 Request"],
+                 [400, "RDT&E Army", "Army", 4, "0604123A", "Counter Small Unmanned Aircraft Systems", 5000, 10000, 60000],
+                 [400, "RDT&E Army", "Army", 4, "0604555A", "Facilities Support", 90000, 95000, 96000],
+                 [400, "RDT&E Army", "Army", 4, "", "Total Budget Activity", 1, 2, 3]])
+    # FY2021 request, two-row header (Base / OCO / Total under each year)
+    y21 = _xlsx([["FY 2021 RDT&E Programs (R-1)"],
+                 ["Account", "Organization", "Program Element", "Program Element Title", "FY 2020 Enacted", None, None, "FY 2021 Request", None, None],
+                 [None, None, None, None, "Base", "OCO", "Total", "Base", "OCO", "Total"],
+                 [400, "Army", "0604123A", "Counter Small Unmanned Aircraft Systems", 55000, 5000, 60000, 80000, 0, 80000],
+                 [400, "Army", "0604999A", "High Energy Laser Weapon Prototype", None, None, None, 45000, 0, 45000],
+                 [400, "Army", "0604555A", "Facilities Support", 96000, 0, 96000, 97000, 0, 97000]])
+    long = pd.concat([parse_exhibit(y20, "r1", 2020), parse_exhibit(y21, "r1", 2021)])
+    summ = line_summary(long).set_index(["request_fy", "line_id"])
+    assert summ.loc[(2020, "0604123A"), "enacted"] == 10_000_000
+    assert summ.loc[(2020, "0604123A"), "request"] == 60_000_000
+    assert summ.loc[(2021, "0604123A"), "enacted"] == 60_000_000     # the Total column, not Base + Total
+    assert summ.loc[(2021, "0604999A"), "request"] == 45_000_000
+    assert "Total Budget Activity" not in set(long["title"])
+
+    flagged = flag_lines(line_summary(long), BUDGET_CFG).set_index(["request_fy", "line_id"])
+    assert flagged.loc[(2020, "0604123A"), "ramp"]                    # $60M vs $10M enacted
+    assert not flagged.loc[(2021, "0604123A"), "ramp"]                # $80M vs $60M is under 1.5x
+    assert flagged.loc[(2021, "0604999A"), "new_start"]
+    assert not flagged.loc[(2021, "0604555A"), "new_start"]
+
+    areas = {"counter_uas": ["counter small unmanned"], "directed_energy": ["high energy laser"],
+             "unmanned_autonomy": ["unmanned"]}
+    sig = area_signals(flag_lines(line_summary(long), BUDGET_CFG), areas, BUDGET_CFG).set_index(["request_fy", "area"])
+    assert sig.loc[(2020, "counter_uas"), "ramps"] == 1
+    assert sig.loc[(2020, "unmanned_autonomy"), "lines"] == 1          # one line can count in two areas
+    assert sig.loc[(2021, "directed_energy"), "new_starts"] == 1
+    assert sig.loc[(2021, "directed_energy"), "signal_date"] == pd.Timestamp("2020-07-01")
+
+
+def test_area_keywords_match_word_starts():
+    from award_signal.budget import tag_areas
+    tags = tag_areas(pd.Series(["Electronic Warfare Development", "New Equipment Review", "EW Planning"]),
+                     {"electronic_warfare": ["electronic warfare", "ew"]})
+    assert list(tags) == [["electronic_warfare"], [], ["electronic_warfare"]]
+
+
+def test_budget_reads_hand_saved_files(tmp_path):
+    from award_signal.budget import local_files
+    (tmp_path / "FY2026").mkdir()
+    (tmp_path / "FY2026" / "r1_display.xlsx").write_bytes(b"PK")
+    (tmp_path / "FY2026" / "p1.xlsx").write_bytes(b"PK")
+    found = local_files(tmp_path, 2026)
+    assert found["r1"].name == "r1_display.xlsx" and found["p1"].name == "p1.xlsx"
+    assert local_files(tmp_path, 2025) == {}

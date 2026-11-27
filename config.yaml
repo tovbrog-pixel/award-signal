@@ -11,6 +11,18 @@ alphavantage_api_key: ""
 data_dir: data
 output_dir: output
 
+budget:
+  first_fy: 2015                 # first request year to load (FY2015 request came out in 2014)
+  last_fy: 2027
+  areas_file: areas.yaml         # fixed keyword list; freeze it before any backtest
+  ramp_multiple: 1.5             # line flag: request at least 1.5x the enacted amount
+  ramp_min_request: 20000000     # ... and at least $20M
+  new_start_min_request: 10000000  # line flag: new line requesting at least $10M
+  area_growth: 0.25              # area flag: request total 25% above enacted total
+  area_min_increase: 100000000   # ... and at least $100M more
+  area_min_line_flags: 3         # or at least 3 ramps or new starts in the area
+  signal_month_day: "07-01"      # signals dated 1 July of the year the request comes out
+
 announcements:
   amount: face                   # face (announced value) | obligated (dollars obligated at award)
   include_modifications: false   # only new awards count as signals

@@ -1,0 +1,101 @@
+# Technology areas for the rising-area detector
+# Author: Tov Binyamin Brog
+#
+# DRAFT, 2026-11-27. This list must be reviewed and frozen (dated) before any
+# backtest runs, and not edited afterward without starting a new version.
+# Freezing it first is what keeps hindsight from choosing the winners.
+#
+# Each area lists keywords matched, case-insensitive, against budget line
+# titles (R-1 program element titles and P-1 line item titles). A line can
+# count toward more than one area.
+
+version: draft-2026-11-27
+
+areas:
+  unmanned_autonomy:
+    - unmanned
+    - autonomous
+    - uas
+    - uav
+    - drone
+    - robotic
+    - attritable
+    - collaborative combat
+  counter_uas:
+    - counter-uas
+    - counter uas
+    - c-uas
+    - counter small unmanned
+    - counter-small unmanned
+  hypersonics:
+    - hypersonic
+    - conventional prompt strike
+    - arrw
+  directed_energy:
+    - directed energy
+    - high energy laser
+    - laser weapon
+    - high power microwave
+  space:
+    - space
+    - satellite
+    - launch
+    - orbital
+  missile_defense:
+    - missile defense
+    - interceptor
+    - thaad
+    - patriot
+    - aegis
+    - glide phase
+  munitions:
+    - munition
+    - missile
+    - rocket
+    - projectile
+    - artillery
+    - torpedo
+    - bomb
+  electronic_warfare:
+    - electronic warfare
+    - electronic attack
+    - jamm
+    - spectrum
+    - ew
+  cyber:
+    - cyber
+  ai_data:
+    - artificial intelligence
+    - machine learning
+    - algorithmic
+    - data analytics
+    - joint all domain
+    - jadc2
+  quantum:
+    - quantum
+  microelectronics:
+    - microelectronic
+    - semiconductor
+    - trusted foundry
+  nuclear:
+    - nuclear
+    - sentinel
+    - icbm
+    - b-21
+  biodefense:
+    - chemical biological
+    - chem bio
+    - biological defense
+    - medical countermeasure
+  energetics_manufacturing:
+    - energetic
+    - industrial base
+    - advanced manufacturing
+    - additive manufacturing
+    - critical mineral
+    - stockpile
+  undersea:
+    - undersea
+    - unmanned underwater
+    - submarine
+    - seabed
