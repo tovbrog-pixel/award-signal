@@ -5,6 +5,8 @@
     widen    stage 2 version 2 data: subsidiaries, SBIR, SAM award notices (no returns)
     backtest stages 2 and 3 (--rules v1 or v2)
     timing   did rising-area companies move before the 1 July entry? (version 2 data)
+    holdout-data  FY2009-FY2016 award history from USAspending and SBIR (no returns)
+    holdout  version 3 rule on FY2009-FY2016, and on FY2017-FY2027 for reference
     run      build events, run the event study, write output/report.html
     demo     run the whole pipeline on synthetic data (no internet needed)
 """
@@ -286,6 +288,109 @@ def cmd_timing(cfg: dict) -> None:
     print(f"Saved {out / 'summary.json'}")
 
 
+def cmd_holdout_data(cfg: dict) -> None:
+    """Holdout award history for FY2009-FY2016 (no returns): USAspending DoD prime awards of
+    $7.5M and up (public 90 days after the action date) plus DoD SBIR awards, matched with the
+    version 2 rules. USAspending names are full legal names, so one-word prefixes are allowed
+    for them as for the DoD announcements."""
+    import copy
+
+    import requests
+    import yaml
+
+    from . import widen
+    from .match2 import Matcher, apply_company_rules, match_table
+    from .stages import company_awards_v2
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "holdout"
+    (data / "holdout").mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
+    areas = yaml.safe_load(Path(cfg["budget"]["areas_file"]).read_text(encoding="utf-8"))["areas"]
+    raw_path = data / "holdout" / "awards_usaspending.csv"
+    if raw_path.exists():
+        aw = pd.read_csv(raw_path, parse_dates=["action_date", "signal_date"])
+    else:
+        hcfg = copy.deepcopy(cfg)
+        hcfg["awards"].update(start_date="2005-01-01", end_date="2016-06-30")
+        print("Downloading DoD prime awards of $7.5M and up from USAspending, 2005 to mid-2016...")
+        aw = awards_mod.fetch_usaspending(hcfg, _http(hcfg, "usaspending"))
+        aw.to_csv(raw_path, index=False)
+    usa = pd.DataFrame({"source": "usaspending", "recipient_name": aw["recipient_name"],
+                        "action_date": pd.to_datetime(aw["action_date"]),
+                        "available_date": pd.to_datetime(aw["signal_date"]), "amount": aw["amount"],
+                        "text": aw["description"].fillna(""), "contract": aw["award_id"]})
+    session = requests.Session()
+    session.headers["User-Agent"] = "award-signal research"
+    sbir = widen.load_sbir(data / "sbir" / "award_data_no_abstract.csv", session)
+    sbir = sbir[sbir["action_date"] <= pd.Timestamp("2016-06-30")]
+    sources = widen.combine_sources(usa, widen.load_sam_awards([]), sbir)
+    print(f"Award rows: {sources['source'].value_counts().to_dict()}")
+    http, tickers, all_names, index = _name_inputs(cfg)
+    subs = pd.read_csv(data / "subsidiaries.csv", parse_dates=["valid_from", "valid_until"])
+    mt = match_table(sources["recipient_name"], Matcher(index, tickers, all_names, subs))
+    info, former = widen.company_info(http, sorted(mt["cik"].astype(int).unique()))
+    mt = apply_company_rules(mt, info, former, widen.DROP_SIC,
+                             set(sources.loc[sources["source"] == "usaspending", "recipient_name"]))
+    a2 = company_awards_v2(sources, mt, areas)
+    a2.assign(areas=a2["areas"].map(";".join)).to_csv(data / "holdout" / "v3_awards.csv", index=False)
+    review = a2.groupby(["cik", "ticker"]).agg(
+        dollars=("amount", "sum"), awards=("amount", "size"),
+        sources=("source", lambda x: ", ".join(sorted(set(x)))),
+        match_types=("match_type", lambda x: ", ".join(sorted(set(x)))),
+        recipient_names=("recipient_name", lambda x: " | ".join(sorted(set(x))[:6]))).reset_index()
+    review = review.merge(info[["cik", "name", "sic", "sic_description"]], on="cik", how="left")
+    review.sort_values("dollars", ascending=False).to_csv(out / "match_review.csv", index=False)
+    print(f"{len(a2):,} award rows matched to {a2['key'].nunique():,} public companies; "
+          f"review list in {out / 'match_review.csv'} (no returns computed)")
+
+
+def cmd_holdout(cfg: dict) -> None:
+    """Version 3 rule on the FY2009-FY2016 holdout, and on FY2017-FY2027 for reference."""
+    import json
+
+    import yaml
+
+    from .sec import Fundamentals
+    from .v3 import HOLDOUT_FYS, judge, trades
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "holdout"
+    out.mkdir(parents=True, exist_ok=True)
+    signals = pd.read_csv(Path(cfg["output_dir"]) / "budget" / "areas_by_year.csv", parse_dates=["signal_date"])
+    missing = [y for y in HOLDOUT_FYS if y not in set(signals["request_fy"])]
+    if missing:
+        sys.exit(f"Budget flags missing for FY{missing}: put the R-1/P-1 files in data\\budget and set budget.first_fy to 2009.")
+    excl = {}
+    for f in ("match_exclusions_v2.yaml", "match_exclusions_holdout.yaml"):
+        if Path(f).exists():
+            d = yaml.safe_load(Path(f).read_text(encoding="utf-8")) or {}
+            excl.setdefault("cik", set()).update(int(e["cik"]) for e in d.get("exclude", []) or [])
+            excl.setdefault("name", set()).update(str(e["name"]) for e in d.get("exclude_recipients", []) or [])
+
+    def load(path):
+        a = pd.read_csv(path, parse_dates=["action_date", "available_date", "delisting_date"],
+                        dtype={"key": str, "ticker": str}, keep_default_na=False, na_values=[""])
+        a["areas"] = a["areas"].fillna("").map(lambda x: [v for v in str(x).split(";") if v])
+        return a[~a["cik"].astype(int).isin(excl.get("cik", set())) & ~a["recipient_name"].isin(excl.get("name", set()))]
+
+    fund, prov = Fundamentals(_http(cfg, "sec")), make_provider(cfg)
+    print("Holdout, FY2009-FY2016:")
+    hold = trades(signals, load(data / "holdout" / "v3_awards.csv"), fund, prov, cfg, years=set(HOLDOUT_FYS))
+    print("Discovery years, FY2017-FY2027 (for reference; the rule was found here):")
+    disc = trades(signals, load(data / "v2_awards.csv"), fund, prov, cfg, years=set(range(2017, 2028)))
+    hold.to_csv(out / "holdout_rows.csv", index=False)
+    disc.to_csv(out / "discovery_rows.csv", index=False)
+    res = {"author": "Tov Binyamin Brog", "holdout": judge(hold, signals, cfg), "discovery": judge(disc, signals, cfg)}
+    (out / "summary.json").write_text(json.dumps(res, indent=2, default=str), encoding="utf-8")
+    for k in ("holdout", "discovery"):
+        r = res[k]
+        pl = r["placebo"]
+        print(f"{k:9s} positions {r['positions']}, mean net excess "
+              f"{(r['mean_net_excess'] or 0):+.3f}, years beating IWM {r['yearly_test']['years_beating_iwm']} of "
+              f"{r['yearly_test']['years']}, random-area draws beaten {pl.get('share_of_placebos_beaten', float('nan')):.0%}, "
+              f"{'PASSED' if r['passed'] else 'NOT PASSED'}")
+    print(f"Saved {out / 'summary.json'}")
+
+
 def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
     import json
@@ -406,7 +511,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "holdout-data", "holdout", "run", "demo"])
     ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
     ap.add_argument("--years", help="notices only: filter just these fiscal years (e.g. 2021,2022), no scan")
     ap.add_argument("--config", default="config.yaml")
@@ -428,5 +533,6 @@ def main(argv=None) -> None:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
      "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg), "timing": lambda: cmd_timing(cfg),
+     "holdout-data": lambda: cmd_holdout_data(cfg), "holdout": lambda: cmd_holdout(cfg),
      "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

@@ -12,7 +12,7 @@ data_dir: data
 output_dir: output
 
 budget:
-  first_fy: 2015                 # first request year to load (FY2015 request came out in 2014)
+  first_fy: 2009                 # first request year to load (FY2015 request came out in 2014)
   last_fy: 2027
   areas_file: areas.yaml         # fixed keyword list; freeze it before any backtest
   ramp_multiple: 1.5             # line flag: request at least 1.5x the enacted amount
