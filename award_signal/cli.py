@@ -311,8 +311,9 @@ def cmd_holdout_data(cfg: dict) -> None:
         aw = pd.read_csv(raw_path, parse_dates=["action_date", "signal_date"])
     else:
         hcfg = copy.deepcopy(cfg)
-        hcfg["awards"].update(start_date="2005-01-01", end_date="2016-06-30")
-        print("Downloading DoD prime awards of $7.5M and up from USAspending, 2005 to mid-2016...")
+        # USAspending's award search starts at 1 October 2007 (FY2008)
+        hcfg["awards"].update(start_date="2007-10-01", end_date="2016-06-30")
+        print("Downloading DoD prime awards of $7.5M and up from USAspending, October 2007 to mid-2016...")
         aw = awards_mod.fetch_usaspending(hcfg, _http(hcfg, "usaspending"))
         aw.to_csv(raw_path, index=False)
     usa = pd.DataFrame({"source": "usaspending", "recipient_name": aw["recipient_name"],

@@ -22,6 +22,9 @@ fixed in advance:
   - many small companies filed no share counts with SEC before mid-2011; when
     none was filed before entry, the first count filed within 18 months after
     is used for the market-cap band only (it never touches returns)
+Known limit, found when collecting the data: USAspending's award search starts
+1 October 2007, so FY2009 (released February 2008) sees only four months of
+award history and FY2010 about nineteen months, against three years elsewhere.
 Known limit: price data comes from Yahoo, which lacks many companies that
 delisted since; the holdout therefore leans toward survivors.
 """
