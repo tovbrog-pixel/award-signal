@@ -13,6 +13,7 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from . import awards as awards_mod
@@ -157,6 +158,65 @@ def cmd_budget(cfg: dict) -> None:
     print(f"Saved {out / 'areas_by_year.csv'} and {out / 'lines_flagged.csv'}")
 
 
+def cmd_backtest(cfg: dict) -> None:
+    """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
+    import json
+
+    import yaml
+
+    from .notices import build_name_index
+    from .report import _table
+    from .sec import Fundamentals, load_all_names, load_av_delisted, load_tickers
+    from .stages import build_positions, company_awards, portfolio_by_year, random_area_placebo
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "stages"
+    out.mkdir(parents=True, exist_ok=True)
+    sig_path = Path(cfg["output_dir"]) / "budget" / "areas_by_year.csv"
+    if not sig_path.exists():
+        sys.exit("Run `python -m award_signal budget` first.")
+    signals = pd.read_csv(sig_path, parse_dates=["signal_date"])
+    signals = signals[signals["request_fy"] >= int(cfg["stages"]["first_request_fy"])]
+    areas = yaml.safe_load(Path(cfg["budget"]["areas_file"]).read_text(encoding="utf-8"))["areas"]
+    http = _http(cfg, "sec")
+    key = str(cfg.get("alphavantage_api_key") or "").strip()
+    delisted = load_av_delisted(Http(data / "cache" / "alphavantage", "award-signal"), key) if key else None
+    index = build_name_index(load_tickers(http), delisted, load_all_names(http))
+    raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
+    awards = company_awards(raw, index, areas)
+    print(f"{len(awards):,} award announcements matched to {awards['key'].nunique():,} public companies")
+    pos = build_positions(signals, awards, Fundamentals(http), make_provider(cfg), cfg)
+    pos.to_csv(out / "positions.csv", index=False)
+    years = portfolio_by_year(pos)
+    years.to_csv(out / "by_year.csv", index=False)
+    placebo = random_area_placebo(pos, signals, cfg)
+    done = years[years["request_fy"] <= int(signals["request_fy"].max()) - 1]
+    positive = int((done["mean_net_excess"] > 0).sum())
+    need = int(np.ceil(cfg["stages"]["min_positive_share"] * len(done))) if len(done) else 0
+    current = pos[(pos["request_fy"] == signals["request_fy"].max()) & pos["rising"]].copy()
+    current.to_csv(out / "current_picks.csv", index=False)
+    traded = pos[(pos["status"] == "traded") & pos["rising"]].drop_duplicates(["request_fy", "ticker"])
+    summary = {"author": "Tov Binyamin Brog", "companies_matched": int(awards["key"].nunique()),
+               "positions": int(len(traded)), "mean_net_excess": float(traded["net_excess"].mean()) if len(traded) else None,
+               "status_counts": pos[pos["rising"]]["status"].value_counts().to_dict(),
+               "yearly_test": {"completed_years": int(len(done)), "years_beating_iwm": positive, "years_required": need,
+                               "passed": bool(len(done) and positive >= need)},
+               "placebo": placebo,
+               "passed": bool(len(done) and positive >= need and placebo.get("passes_95pct", False))}
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
+    html = ("<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='author' content='Tov Binyamin Brog'>"
+            "<title>Award Signal - stages 2 and 3</title></head><body style='font-family:system-ui;max-width:1000px;margin:2rem auto'>"
+            f"<h1>Rising-area backtest</h1><p>Tov Binyamin Brog</p><pre>{json.dumps(summary, indent=2, default=str)}</pre>"
+            f"<h2>By signal year</h2>{_table(years.round(4))}"
+            f"<h2>Current picks (latest request)</h2>{_table(current[['area', 'ticker', 'share', 'market_cap', 'status', 'ret', 'bench_ret']].round(4))}"
+            "</body></html>")
+    (out / "report.html").write_text(html, encoding="utf-8")
+    print(f"Positions: {summary['positions']}; mean net excess over IWM: {summary['mean_net_excess']}")
+    print(f"Yearly test: {positive} of {len(done)} completed years beat IWM (needs {need})")
+    if "share_of_placebos_beaten" in placebo:
+        print(f"Placebo: rising areas beat {placebo['share_of_placebos_beaten']:.0%} of random-area portfolios")
+    print(f"{'PASSED' if summary['passed'] else 'NOT PASSED'}. Report: {out / 'report.html'}")
+
+
 def cmd_notices(cfg: dict) -> None:
     """Filter SAM.gov archives for sole-source and intent notices, then find the public companies they name."""
     import requests
@@ -213,7 +273,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "backtest", "run", "demo"])
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--effect", type=float, default=0.15, help="demo only: planted effect size")
     ap.add_argument("--source", choices=["usaspending", "announcements", "csv"],
@@ -232,5 +292,5 @@ def main(argv=None) -> None:
     if args.no_ratio:
         cfg["signal"]["min_award_to_revenue"] = 0.0
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
-     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg),
+     "notices": lambda: cmd_notices(cfg), "budget": lambda: cmd_budget(cfg), "backtest": lambda: cmd_backtest(cfg),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

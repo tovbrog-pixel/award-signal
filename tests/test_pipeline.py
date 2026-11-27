@@ -397,3 +397,66 @@ def test_rising_area_is_judged_against_department_growth():
     sig = area_signals(flagged, {"hypersonics": ["hypersonic"], "space": ["space"]}, BUDGET_CFG).set_index("area")
     assert sig.loc["hypersonics", "rising"]          # +80% against about +4% overall
     assert not sig.loc["space", "rising"]            # +5%: barely above the department, and only $50M
+
+
+def _stage_market(effect):
+    from award_signal.synthetic import DictProvider, StubFundamentals, _frame
+    rng = np.random.default_rng(3)
+    dates = pd.bdate_range("2014-01-01", "2026-11-20")
+    bench = _frame(dates, 150 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(dates)))), rng, 3e7)
+    areas = ["hypersonics", "space", "cyber", "undersea", "munitions", "nuclear"]
+    frames, index, rows, revenue, shares = {"IWM": bench}, {}, [], {}, {}
+    sig_rows = []
+    rising_by_year = {y: set(rng.choice(areas, size=2, replace=False)) for y in range(2017, 2027)}
+    for k in range(36):
+        area = areas[k % len(areas)]
+        tk, cik, name = f"ST{k:02d}", 500 + k, f"Stage Test Company {k:02d} Inc"
+        index[normalize(name)] = {"cik": cik, "ticker": tk, "sec_title": name, "delisting_date": None}
+        shares[cik] = 2e7
+        for y in range(2015, 2026):
+            rows.append({"recipient_name": name, "face_value": 3e7, "multi_award": False, "modification": False,
+                         "description": f"{area} work", "action_date": f"{y}-03-15"})
+        lr = np.log1p(bench["close"].pct_change().fillna(0).to_numpy()) + rng.normal(-0.5 * 0.02**2, 0.02, len(dates))
+        for y, ris in rising_by_year.items():
+            if area in ris:
+                i = int(dates.searchsorted(pd.Timestamp(f"{y - 1}-07-01"), side="right"))
+                lr[i + 1:i + 253] += np.log1p(effect) / 252
+        frames[tk] = _frame(dates, 20 * np.exp(np.cumsum(lr)), rng, 5e5)
+    for y, ris in rising_by_year.items():
+        for a in areas:
+            sig_rows.append({"request_fy": y, "area": a, "rising": a in ris, "signal_date": pd.Timestamp(f"{y - 1}-07-01")})
+    return (pd.DataFrame(rows), index, pd.DataFrame(sig_rows), DictProvider(frames),
+            StubFundamentals({}, shares), {a: [a] for a in areas})
+
+
+STAGE_CFG = {**CFG, "stages": {"lookback_years": 3, "exposure_share": 0.25, "exposure_min_dollars": 7.5e6,
+                               "hold_days": 252}}
+
+
+def test_stages_find_planted_rising_areas():
+    from award_signal.stages import build_positions, company_awards, portfolio_by_year, random_area_placebo
+    raw, index, signals, provider, fund, areas = _stage_market(effect=0.30)
+    awards = company_awards(raw, index, areas)
+    assert awards["key"].nunique() == 36
+    pos = build_positions(signals, awards, fund, provider, STAGE_CFG, log=lambda *a: None)
+    traded = pos[(pos["status"] == "traded") & pos["rising"]]
+    assert traded["request_fy"].nunique() >= 9
+    assert portfolio_by_year(pos)["mean_net_excess"].mean() > 0.1
+    assert random_area_placebo(pos, signals, STAGE_CFG)["passes_95pct"]
+
+
+def test_stages_null_fails_placebo():
+    from award_signal.stages import build_positions, company_awards, random_area_placebo
+    raw, index, signals, provider, fund, areas = _stage_market(effect=0.0)
+    pos = build_positions(signals, company_awards(raw, index, areas), fund, provider, STAGE_CFG, log=lambda *a: None)
+    assert not random_area_placebo(pos, signals, STAGE_CFG)["passes_95pct"]
+
+
+def test_exposure_uses_only_earlier_awards():
+    from award_signal.stages import exposure
+    aw = pd.DataFrame({"key": ["A", "A", "A"], "ticker": "AAA", "cik": 1, "delisting_date": pd.NaT,
+                       "action_date": pd.to_datetime(["2019-01-01", "2020-01-01", "2021-08-01"]),
+                       "amount": [10e6, 10e6, 500e6], "areas": [["space"], ["space"], ["cyber"]],
+                       "recipient_name": "A Co"})
+    ex = exposure(aw, pd.Timestamp("2021-07-01"), STAGE_CFG).set_index("area")
+    assert ex.loc["space", "share"] == 1.0 and "cyber" not in ex.index   # the August 2021 award is not known yet
