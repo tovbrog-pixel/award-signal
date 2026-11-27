@@ -16,7 +16,7 @@ import re
 
 import pandas as pd
 
-from .net import Http
+from .net import Http, HttpError
 
 BASE = "https://www.war.gov"
 LIST_URL = BASE + "/News/Contracts/?Page={page}"
@@ -129,14 +129,40 @@ def parse_article(page: str, date: pd.Timestamp, art_id: str) -> list[dict]:
     return rows
 
 
+def cached_listings(http: Http) -> list[tuple[str, str, pd.Timestamp]]:
+    """Every article named in listing pages already saved in the cache."""
+    seen, out = set(), []
+    for f in http.cache_dir.glob("*.txt"):
+        try:
+            text = f.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if "/News/Contracts/Contract/Article/" not in text or 'class="body"' in text:
+            continue
+        for item in parse_listing(text):
+            if item[0] not in seen:
+                seen.add(item[0])
+                out.append(item)
+    return out
+
+
 def fetch_announcements(cfg: dict, http: Http, log=print) -> pd.DataFrame:
     a = cfg["awards"]
     start, end = pd.Timestamp(a["start_date"]), pd.Timestamp(a["end_date"])
     articles, page = [], 1
     while True:
         # listing pages shift by one entry each business day, so cache them per day
-        listing = parse_listing(http.text(LIST_URL.format(page=page),
-                                          cache_tag="#" + pd.Timestamp.today().strftime("%Y-%m-%d")))
+        try:
+            text = http.text(LIST_URL.format(page=page), cache_tag="#" + pd.Timestamp.today().strftime("%Y-%m-%d"))
+        except HttpError as exc:
+            if exc.status != 403:
+                raise
+            # the site refuses the listing today: use the listing pages saved on earlier runs
+            articles = [x for x in cached_listings(http) if start <= x[2] <= end]
+            log(f"  war.gov refused the listing page ({exc.status}); using {len(articles):,} articles "
+                "from listing pages saved earlier")
+            break
+        listing = parse_listing(text)
         if not listing:
             break
         articles.extend(x for x in listing if start <= x[2] <= end)
