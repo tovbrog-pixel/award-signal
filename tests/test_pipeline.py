@@ -633,3 +633,42 @@ def test_timing_check_finds_a_release_jump():
     s = summarize(out, sig, STAGE_CFG)
     assert s["release"]["passes_95pct"] and not s["pre"]["passes_95pct"]
     assert "earlier sources" in s["reading"]
+
+
+def test_v3_rule_trades_the_release_window_and_band_fallback():
+    from award_signal.synthetic import DictProvider, _frame
+    from award_signal.v3 import RELEASE_DATES, judge, shares_for_band, trades
+    facts = {"facts": {"dei": {"EntityCommonStockSharesOutstanding": {"units": {"shares": [
+        {"filed": "2012-03-01", "end": "2011-12-31", "val": 5e6}]}}}}}
+    assert shares_for_band(facts, pd.Timestamp("2011-06-01")) == 5e6      # first count filed within 18 months
+    assert shares_for_band(facts, pd.Timestamp("2010-01-01")) is None
+    rng = np.random.default_rng(9)
+    dates = pd.bdate_range("2007-01-01", "2026-11-20")
+    bench = _frame(dates, 150 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(dates)))), rng, 3e7)
+    areas = ["hypersonics", "space", "cyber", "undersea", "munitions", "nuclear"]
+    rising_by_year = {y: set(rng.choice(areas, size=2, replace=False)) for y in range(2009, 2017)}
+    frames, aw = {"IWM": bench}, []
+
+    class Fund:
+        def facts(self, cik):
+            return {"facts": {"dei": {"EntityCommonStockSharesOutstanding": {"units": {"shares": [
+                {"filed": "2006-01-01", "end": "2005-12-31", "val": 2e7}]}}}}}
+
+    for k in range(36):
+        area, tk, cik = areas[k % 6], f"HO{k:02d}", 900 + k
+        lr = np.log1p(bench["close"].pct_change().fillna(0).to_numpy()) + rng.normal(0, 0.02, len(dates))
+        for y, ris in rising_by_year.items():
+            if area in ris:
+                i = int(dates.searchsorted(pd.Timestamp(RELEASE_DATES[y]))) + 10
+                lr[i] += np.log(1.12)                      # a 12% rise inside the window
+        frames[tk] = _frame(dates, 20 * np.exp(np.cumsum(lr)), rng, 5e5)
+        for y in range(2005, 2016):
+            aw.append({"key": str(cik), "ticker": tk, "cik": cik, "delisting_date": pd.NaT,
+                       "action_date": pd.Timestamp(f"{y}-01-05"), "available_date": pd.Timestamp(f"{y}-01-06"),
+                       "amount": 3e7, "areas": [area], "recipient_name": tk})
+    sig = pd.DataFrame([{"request_fy": y, "area": a, "rising": a in ris, "signal_date": pd.Timestamp(f"{y - 1}-07-01")}
+                        for y, ris in rising_by_year.items() for a in areas])
+    cfg = {**STAGE_CFG, "stages": {**STAGE_CFG["stages"], "min_positive_share": 0.6}}
+    rows = trades(sig, pd.DataFrame(aw), Fund(), DictProvider(frames), cfg, log=lambda *a: None)
+    res = judge(rows, sig, cfg)
+    assert res["passed"] and res["yearly_test"]["years"] == 8
