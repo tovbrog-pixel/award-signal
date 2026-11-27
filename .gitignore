@@ -5,3 +5,4 @@ __pycache__/
 data/
 output/
 run_log.txt
+logs/

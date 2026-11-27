@@ -63,14 +63,31 @@ def _http(cfg: dict, sub: str) -> Http:
 
 def cmd_awards(cfg: dict) -> None:
     out = Path(cfg["data_dir"]) / "awards.csv"
-    if cfg["awards"]["source"] == "csv":
+    source = cfg["awards"]["source"]
+    if source == "csv":
         df = awards_mod.load_awards_csv(cfg["awards"]["csv_path"], cfg)
+    elif source == "announcements":
+        from .announcements import fetch_announcements, to_awards
+
+        print("Reading DoD daily contract announcements from war.gov (four pages at a time)...")
+        http = Http(Path(cfg["data_dir"]) / "cache" / "wargov",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) award-signal research", min_interval=0.3)
+        raw = fetch_announcements(cfg, http)
+        raw.to_csv(Path(cfg["data_dir"]) / "announcements_raw.csv", index=False)
+        n_mod = int(raw["modification"].sum()) if len(raw) else 0
+        n_multi = int(raw["multi_award"].sum()) if len(raw) else 0
+        print(f"{len(raw):,} award paragraphs: {n_mod:,} modifications, {n_multi:,} multiple-award rows")
+        sel = to_awards(raw, cfg)
+        for col in ("recipient_uei",):
+            sel = sel.assign(**{col: None})
+        df = awards_mod.finalize(sel, cfg)
     else:
         print("Downloading DoD awards from USAspending, one month at a time...")
         df = awards_mod.fetch_usaspending(cfg, _http(cfg, "usaspending"))
         skipped = Path(cfg["data_dir"]) / "awards_skipped.csv"
         pd.DataFrame(df.attrs.get("skipped", []), columns=["start", "end", "page", "error"]).to_csv(skipped, index=False)
     df.to_csv(out, index=False)
+    df.to_csv(Path(cfg["data_dir"]) / f"awards_{source}.csv", index=False)
     print(f"Saved {len(df):,} awards to {out}")
 
 
@@ -123,7 +140,14 @@ def main(argv=None) -> None:
     ap.add_argument("command", choices=["awards", "match", "run", "demo"])
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--effect", type=float, default=0.15, help="demo only: planted effect size")
+    ap.add_argument("--source", choices=["usaspending", "announcements", "csv"],
+                    help="awards only: override awards.source in config.yaml")
+    ap.add_argument("--out", help="run only: write the report to this folder under output/")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
+    if args.source:
+        cfg["awards"]["source"] = args.source
+    if args.out:
+        cfg["output_dir"] = str(Path(cfg["output_dir"]) / args.out)
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
      "run": lambda: cmd_run(cfg), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()

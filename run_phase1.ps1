@@ -4,12 +4,14 @@
 # Start it by double-clicking run_phase1.bat. It installs Python 3.12 if
 # needed, builds a virtual environment in %LOCALAPPDATA%\award-signal (outside
 # OneDrive), runs the tests and demo, then the real award, match and run steps.
-# Everything it prints also goes to run_log.txt in this folder.
+# Everything it prints also goes to a new file in the logs folder.
 
 $ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
 $env:PYTHONUNBUFFERED = "1"
-$log = Join-Path $PSScriptRoot "run_log.txt"
+# A new log file each run: OneDrive can lock a file it is syncing, which blocks appends
+New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot "logs") | Out-Null
+$log = Join-Path $PSScriptRoot ("logs\run_{0}.txt" -f (Get-Date -Format "yyyyMMdd_HHmmss"))
 
 function Log([string]$msg) {
     $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
@@ -52,7 +54,7 @@ if (-not $py) {
     $py = Find-Python
 }
 if (-not $py) {
-    Log "Python could not be found or installed. See run_log.txt."
+    Log "Python could not be found or installed. See the newest file in the logs folder."
     Read-Host "Press Enter to close"
     exit 1
 }
@@ -93,6 +95,6 @@ if ($r -eq 0 -and (Test-Path $report)) {
     Log "Finished. Opening $report"
     Start-Process $report
 } else {
-    Log "The event study did not finish. See run_log.txt."
+    Log "The event study did not finish. See the newest file in the logs folder."
 }
 Read-Host "Press Enter to close"

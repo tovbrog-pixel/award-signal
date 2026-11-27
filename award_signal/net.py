@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import time
 from pathlib import Path
 
@@ -18,15 +19,19 @@ class Http:
         self.session.headers.update({"User-Agent": user_agent, "Accept-Encoding": "gzip, deflate"})
         self.min_interval = min_interval
         self._last = 0.0
+        self._lock = threading.Lock()
 
     def _cache_path(self, key: str) -> Path:
         return self.cache_dir / (hashlib.sha1(key.encode()).hexdigest() + ".json")
 
     def _pace(self) -> None:
-        wait = self.min_interval - (time.time() - self._last)
+        # threads share one schedule: requests start at least min_interval apart
+        with self._lock:
+            start = max(time.time(), self._last + self.min_interval)
+            self._last = start
+        wait = start - time.time()
         if wait > 0:
             time.sleep(wait)
-        self._last = time.time()
 
     def json(self, method: str, url: str, body: dict | None = None, use_cache: bool = True,
              retries: int = 8) -> dict:
@@ -54,9 +59,10 @@ class Http:
         raise HttpError(0, f"gave up after {retries} tries: {last_err}")
 
 
-    def text(self, url: str, use_cache: bool = True, retries: int = 8) -> str:
-        """GET a text file (CSV, plain text) with the same cache and retry rules."""
-        cp = self._cache_path("TEXT" + url).with_suffix(".txt")
+    def text(self, url: str, use_cache: bool = True, retries: int = 8, cache_tag: str = "") -> str:
+        """GET a text file (CSV, plain text) with the same cache and retry rules.
+        cache_tag separates cached copies of a page that changes (for example, by day)."""
+        cp = self._cache_path("TEXT" + url + cache_tag).with_suffix(".txt")
         if use_cache and cp.exists():
             return cp.read_text(encoding="utf-8")
         last_err = None

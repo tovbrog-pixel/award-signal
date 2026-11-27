@@ -226,3 +226,45 @@ def test_award_after_delisting_is_not_a_trade():
     res = run_study(ev, DictProvider({"IWM": px}), CFG)
     assert res["status"].iloc[0] == "delisted before signal"
     assert worst_case(res, CFG)["unpriced_trades"] == 0
+
+
+ARTICLE_HTML = """<html><body><div class="body">
+<p style="text-align: center;"><strong>AIR FORCE</strong></p>
+<p>Boeing Defense, Space &amp; Security, a division of The Boeing Co., Seattle, Washington, has been awarded a $2,819,046,560 modification to a previously awarded contract (FA8625-11-C-6600) for 15 KC-46A Lot 13 production aircraft. Fiscal 2027 aircraft procurement funds in the amount of $2,819,046,560 are being obligated at the time of award.</p>
+<p>Amentum Technology Inc., Tullahoma, Tennessee, has been awarded a cost-plus-fixed-fee $68,276,868 task order (FA4890-27-F-0001) for squadron support. Fiscal 2027 operations funds in the amount of $5,000,000 are being obligated at the time of award.</p>
+<p style="text-align: center;"><strong><span>NAVY</span></strong></p>
+<p>Alpha Widgets Inc.,* Huntsville, Alabama (N00019-27-D-0101); Bravo Systems LLC, Dayton, Ohio (N00019-27-D-0102); and Charlie Corp., Austin, Texas (N00019-27-D-0103), are each awarded a $50,000,000 indefinite-delivery/indefinite-quantity contract for engineering services.</p>
+<p>Delta Sensors Corp.,* Tucson, Arizona, was awarded a $12,500,000 firm-fixed-price contract (N68335-27-C-0042) for radar test sets.</p>
+<p>Work will be performed in Tucson, Arizona.</p>
+</div></body></html>"""
+
+
+def test_announcement_parser():
+    from award_signal.announcements import parse_article, parse_listing, slug_date, to_awards
+    assert slug_date("contracts-for-sept-30-2021") == pd.Timestamp("2021-09-30")
+    assert slug_date("contracts-for-dec-10-2015") == pd.Timestamp("2015-12-10")
+    listing = 'article-url="https://www.war.gov/News/Contracts/Contract/Article/633702/contracts-for-dec-10-2015/"'
+    assert parse_listing(listing) == [("633702", "contracts-for-dec-10-2015", pd.Timestamp("2015-12-10"))]
+
+    rows = pd.DataFrame(parse_article(ARTICLE_HTML, pd.Timestamp("2026-11-24"), "1"))
+    by = rows.set_index("recipient_name")
+    assert by.loc["Boeing Defense", "modification"]
+    assert by.loc["Boeing Defense", "sub_agency"] == "Air Force"
+    assert not by.loc["Amentum Technology Inc", "modification"]
+    assert by.loc["Amentum Technology Inc", "face_value"] == 68_276_868
+    assert by.loc["Amentum Technology Inc", "obligated"] == 5_000_000
+    assert set(rows[rows["multi_award"]]["recipient_name"]) == {"Alpha Widgets Inc", "Bravo Systems LLC", "Charlie Corp"}
+    assert by.loc["Alpha Widgets Inc", "small_business"]
+    assert by.loc["Delta Sensors Corp", "sub_agency"] == "Navy"
+    assert by.loc["Delta Sensors Corp", "contract_number"] == "N68335-27-C-0042"
+    assert len(rows) == 6                                   # the "Work will be performed" line is skipped
+
+    cfg = {"announcements": {"amount": "face", "include_modifications": False, "include_multi_award": False}}
+    sel = to_awards(rows, cfg)
+    assert set(sel["recipient_name"]) == {"Amentum Technology Inc", "Delta Sensors Corp"}
+
+
+def test_one_word_names_need_review():
+    tickers = pd.DataFrame({"cik": [5], "ticker": ["NVMI"], "sec_title": ["NOVA LTD."]})
+    cand = build_candidates(pd.Series(["NOVA GROUP, INC."]), tickers)
+    assert cand["confirmed"].iloc[0] == "" and "one-word" in cand["note"].iloc[0]

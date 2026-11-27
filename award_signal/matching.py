@@ -68,7 +68,12 @@ def build_candidates(recipients: pd.Series, tickers: pd.DataFrame,
         # pass 1: current SEC ticker list
         if n in t_idx:
             r = t.iloc[t_idx[n][0]]
-            out.append([name, int(r["cik"]), r["ticker"], r["sec_title"], 1.0, "Y", "sec_tickers", None, ""])
+            if len(n.split()) == 1:
+                # one-word names collide easily (NOVA GROUP vs NOVA LTD), so a person checks them
+                out.append([name, int(r["cik"]), r["ticker"], r["sec_title"], 1.0, "", "sec_tickers", None,
+                            "one-word name: check it is the same company"])
+            else:
+                out.append([name, int(r["cik"]), r["ticker"], r["sec_title"], 1.0, "Y", "sec_tickers", None, ""])
             continue
         close = difflib.get_close_matches(n, t_norms, n=1, cutoff=cutoff)
         if close:
@@ -85,7 +90,7 @@ def build_candidates(recipients: pd.Series, tickers: pd.DataFrame,
         cik, title = ciks[0], rows.iloc[0]["sec_title"]
         note = "" if len(ciks) == 1 else f"{len(ciks)} SEC filers share this name: {ciks}"
         hits = d.iloc[d_idx[n]] if n in d_idx else None
-        if hits is not None and len(hits) == 1 and len(ciks) == 1:
+        if hits is not None and len(hits) == 1 and len(ciks) == 1 and len(n.split()) > 1:
             h = hits.iloc[0]
             out.append([name, cik, h["ticker"], title, 1.0, "Y", "sec_all_names+av_delisted",
                         h["delisting_date"], ""])

@@ -11,8 +11,13 @@ alphavantage_api_key: ""
 data_dir: data
 output_dir: output
 
+announcements:
+  amount: face                   # face (announced value) | obligated (dollars obligated at award)
+  include_modifications: false   # only new awards count as signals
+  include_multi_award: false     # multiple-award contracts name no single company's dollars
+
 awards:
-  source: usaspending            # usaspending | csv
+  source: usaspending            # usaspending | announcements | csv
   csv_path: data/awards.csv      # used when source is csv (for example a HigherGov export)
   start_date: "2015-01-01"
   end_date: "2025-12-31"
