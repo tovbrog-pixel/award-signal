@@ -166,7 +166,8 @@ def exposures(lines: pd.DataFrame, links: pd.DataFrame, awards: pd.DataFrame, re
     return g.merge(yl[["key_id", "flagged"]], on="key_id", how="inner")
 
 
-def positions(lines, links, awards, fundamentals, provider, cfg, years, log=print) -> pd.DataFrame:
+def positions(lines, links, awards, fundamentals, provider, cfg, years, log=print,
+              min_dollars: float = 7.5e6) -> pd.DataFrame:
     sig = cfg["signal"]
     bench = provider.get(cfg["prices"]["benchmark"])
     cache, rows = {}, []
@@ -175,7 +176,7 @@ def positions(lines, links, awards, fundamentals, provider, cfg, years, log=prin
         if rfy not in RELEASE_DATES:
             continue
         rel = pd.Timestamp(RELEASE_DATES[rfy])
-        ex = exposures(lines, links, awards, rel, rfy, cfg)
+        ex = exposures(lines, links, awards, rel, rfy, cfg, min_dollars=min_dollars)
         log(f"  FY{rfy} (released {rel.date()}): {ex.loc[ex['flagged'], 'key_id'].nunique()} flagged lines with "
             f"exposed companies, {ex['key_id'].nunique()} lines in all, {ex['ticker'].nunique()} companies")
         for r in ex.itertuples(index=False):

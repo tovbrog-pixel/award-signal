@@ -689,3 +689,16 @@ def test_v4_line_keys_and_links():
                        "recipient_name": ["Acme", "Beta", "Gamma"]})
     ln, links = link_awards(lines, aw)
     assert set(map(tuple, links.to_numpy())) == {("msv", 0), ("f-35", 1)}
+
+
+def test_v5_subcontracts_inherit_prime_text():
+    from award_signal.subawards import to_sources
+    raw = pd.DataFrame({"Sub-Awardee Name": ["Acme Corp", "Beta Inc", "Gamma LLC"],
+                        "Sub-Award Date": ["2020-01-10", "2020-02-10", "2020-03-10"],
+                        "Sub-Award Amount": [500000, 3.7e9, 100000],
+                        "Prime Award ID": ["N0001920C0010", "X", "Y"], "Sub-Award Description": ["machined parts", "", ""]})
+    ann = pd.DataFrame({"multi_award": [False], "contract_number": ["N00019-20-C-0010"],
+                        "description": ["Lockheed Martin is awarded $100,000,000 for F-35 lot 14 parts."]})
+    out = to_sources(raw, ann)
+    assert list(out["recipient_name"]) == ["Acme Corp"]          # $3.7B error and sub-$250k rows dropped
+    assert "F-35" in out["text"].iloc[0] and out["available_date"].iloc[0] == pd.Timestamp("2020-04-09")

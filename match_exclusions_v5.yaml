@@ -1,0 +1,9 @@
+# Version 5: extra companies and recipient names left out (subcontractors)
+# Author: Tov Binyamin Brog
+#
+# Filled from output/subawards/match_review.csv before any version 5 return is
+# computed, then frozen with the date below.
+
+frozen: null
+exclude: []
+exclude_recipients: []

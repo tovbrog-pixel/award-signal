@@ -8,6 +8,8 @@
     holdout-data  FY2009-FY2016 award history from USAspending and SBIR (no returns)
     holdout  version 3 rule on FY2009-FY2016, and on FY2017-FY2027 for reference
     lines    version 4: companies linked to individual budget lines
+    subawards-data  version 5 data: DoD subcontracts matched to public companies (no returns)
+    subawards  version 5 test: budget lines reached through subcontracts
     run      build events, run the event study, write output/report.html
     demo     run the whole pipeline on synthetic data (no internet needed)
 """
@@ -435,6 +437,104 @@ def cmd_lines(cfg: dict) -> None:
     print(f"Saved {out / 'summary.json'}")
 
 
+def _v5_sources(cfg: dict, with_subs: pd.DataFrame | None = None):
+    import requests
+
+    from . import widen
+
+    data = Path(cfg["data_dir"])
+    raw = pd.read_csv(data / "announcements_raw.csv", low_memory=False)
+    session = requests.Session()
+    session.headers["User-Agent"] = "award-signal research"
+    sbir = widen.load_sbir(data / "sbir" / "award_data_no_abstract.csv", session)
+    return raw, widen.combine_sources(widen.announcement_rows(raw), widen.load_sam_awards([]), sbir)
+
+
+def cmd_subawards_data(cfg: dict) -> None:
+    """Version 5 data (no returns): DoD subcontracts from USAspending, matched to public companies."""
+    from . import subawards as sub
+    from . import widen
+    from .match2 import Matcher, apply_company_rules, match_table
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "subawards"
+    out.mkdir(parents=True, exist_ok=True)
+    raw_path = data / "subawards_raw.csv"
+    if raw_path.exists():
+        sraw = pd.read_csv(raw_path, low_memory=False)
+    else:
+        print("Downloading DoD subcontracts of $250,000 and up from USAspending, 2013 to date...")
+        end = (pd.Timestamp.today() - pd.offsets.MonthBegin(1)).strftime("%Y-%m-%d")
+        sraw, skipped = sub.fetch(_http(cfg, "usaspending"), end)
+        if skipped:
+            print(f"WARNING: {len(skipped)} windows skipped; rerun after moving subawards_raw.csv aside.")
+        sraw.to_csv(raw_path, index=False)
+    raw, _ = _v5_sources(cfg)
+    subs_src = sub.to_sources(sraw, raw)
+    print(f"{len(subs_src):,} subcontracts kept; {(subs_src['text'].str.len() > 400).mean():.0%} carry prime-contract text")
+    http, tickers, all_names, index = _name_inputs(cfg)
+    subsidiaries = pd.read_csv(data / "subsidiaries.csv", parse_dates=["valid_from", "valid_until"])
+    mt = match_table(subs_src["recipient_name"], Matcher(index, tickers, all_names, subsidiaries))
+    info, former = widen.company_info(http, sorted(mt["cik"].astype(int).unique()))
+    mt = apply_company_rules(mt, info, former, widen.DROP_SIC, set(subs_src["recipient_name"]))
+    mt.to_csv(data / "v5_sub_matches.csv", index=False)
+    m = subs_src.merge(mt[["recipient_name", "cik", "ticker", "match_type"]], on="recipient_name")
+    v2 = set(pd.read_csv(data / "v2_matches.csv")["cik"].astype(int))
+    review = m.groupby(["cik", "ticker"]).agg(
+        dollars=("amount", "sum"), subcontracts=("amount", "size"),
+        match_types=("match_type", lambda x: ", ".join(sorted(set(x)))),
+        recipient_names=("recipient_name", lambda x: " | ".join(sorted(set(x))[:6]))).reset_index()
+    review = review.merge(info[["cik", "name", "sic", "sic_description"]], on="cik", how="left")
+    review["new_in_v5"] = ~review["cik"].astype(int).isin(v2)
+    review.sort_values("dollars", ascending=False).to_csv(out / "match_review.csv", index=False)
+    print(f"Matched to {review['cik'].nunique():,} public companies ({int(review['new_in_v5'].sum())} not seen before); "
+          f"review list in {out / 'match_review.csv'} (no returns computed)")
+
+
+def cmd_subawards(cfg: dict) -> None:
+    """Version 5 test: budget lines reached through prime and subcontract text."""
+    import json
+
+    import yaml
+
+    from . import subawards as sub
+    from .lines import build_award_table, link_awards, positions
+    from .sec import Fundamentals
+    from .v3 import judge
+
+    data, out = Path(cfg["data_dir"]), Path(cfg["output_dir"]) / "subawards"
+    out.mkdir(parents=True, exist_ok=True)
+    raw, sources = _v5_sources(cfg)
+    subs_src = sub.to_sources(pd.read_csv(data / "subawards_raw.csv", low_memory=False), raw)
+    mt = pd.concat([pd.read_csv(data / "v2_matches.csv", parse_dates=["valid_from", "valid_until"]),
+                    pd.read_csv(data / "v5_sub_matches.csv", parse_dates=["valid_from", "valid_until"])])
+    mt = mt.drop_duplicates(["recipient_name", "cik", "valid_from"])
+    drop_c, drop_n = set(), set()
+    for f in ("match_exclusions_v2.yaml", "match_exclusions_v5.yaml"):
+        d = yaml.safe_load(Path(f).read_text(encoding="utf-8")) or {}
+        drop_c |= {int(e["cik"]) for e in d.get("exclude", []) or []}
+        drop_n |= {str(e["name"]) for e in d.get("exclude_recipients", []) or []}
+    mt = mt[~mt["cik"].astype(int).isin(drop_c)]
+    allsrc = pd.concat([sources, subs_src], ignore_index=True)
+    allsrc = allsrc[~allsrc["recipient_name"].isin(drop_n)]
+    aw = build_award_table(allsrc, mt)
+    lf = pd.read_csv(Path(cfg["output_dir"]) / "budget" / "lines_flagged.csv")
+    lines, links = link_awards(lf[lf["request_fy"] >= 2014], aw)
+    print(f"{links['award_idx'].nunique():,} of {len(aw):,} matched award rows mention a budget line")
+    pos = positions(lines, links, aw, Fundamentals(_http(cfg, "sec")), make_provider(cfg), cfg, range(2017, 2028),
+                    min_dollars=sub.LINE_MIN_DOLLARS)
+    pos.to_csv(out / "positions.csv", index=False)
+    res = {"author": "Tov Binyamin Brog", **judge(pos, pos, cfg)}
+    cur = pos[(pos["status"] == "hold not finished") & pos["rising"]].drop_duplicates(["request_fy", "ticker"])
+    cur.to_csv(out / "current_picks.csv", index=False)
+    (out / "summary.json").write_text(json.dumps(res, indent=2, default=str), encoding="utf-8")
+    pl = res["placebo"]
+    print(f"Positions {res['positions']}, mean net excess {(res['mean_net_excess'] or 0):+.3f}, years beating IWM "
+          f"{res['yearly_test']['years_beating_iwm']} of {res['yearly_test']['years']}, random-line draws beaten "
+          f"{pl.get('share_of_placebos_beaten', float('nan')):.0%}: {'PASSED' if res['passed'] else 'NOT PASSED'}")
+    print(f"Open positions from the latest budgets: {', '.join(cur['ticker']) or 'none'}")
+    print(f"Saved {out / 'summary.json'}")
+
+
 def cmd_backtest(cfg: dict, rules: str = "v1") -> None:
     """Stages 2 and 3: exposed companies for each rising area, then the 12-month backtest."""
     import json
@@ -555,7 +655,7 @@ def cmd_demo(cfg: dict, effect: float) -> None:
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="award_signal", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "holdout-data", "holdout", "lines", "run", "demo"])
+    ap.add_argument("command", choices=["awards", "match", "notices", "budget", "widen", "backtest", "timing", "holdout-data", "holdout", "lines", "subawards-data", "subawards", "run", "demo"])
     ap.add_argument("--rules", choices=["v1", "v2"], default="v1", help="backtest only: stage 2 rule version")
     ap.add_argument("--years", help="notices only: filter just these fiscal years (e.g. 2021,2022), no scan")
     ap.add_argument("--config", default="config.yaml")
@@ -578,5 +678,6 @@ def main(argv=None) -> None:
     {"awards": lambda: cmd_awards(cfg), "match": lambda: cmd_match(cfg),
      "notices": lambda: cmd_notices(cfg, args.years), "budget": lambda: cmd_budget(cfg), "widen": lambda: cmd_widen(cfg), "timing": lambda: cmd_timing(cfg),
      "holdout-data": lambda: cmd_holdout_data(cfg), "holdout": lambda: cmd_holdout(cfg), "lines": lambda: cmd_lines(cfg),
+     "subawards-data": lambda: cmd_subawards_data(cfg), "subawards": lambda: cmd_subawards(cfg),
      "backtest": lambda: cmd_backtest(cfg, args.rules),
      "run": lambda: cmd_run(cfg, args.awards, args.map), "demo": lambda: cmd_demo(cfg, args.effect)}[args.command]()
