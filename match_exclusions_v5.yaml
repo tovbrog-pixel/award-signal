@@ -1,9 +1,67 @@
 # Version 5: extra companies and recipient names left out (subcontractors)
 # Author: Tov Binyamin Brog
 #
-# Filled from output/subawards/match_review.csv before any version 5 return is
-# computed, then frozen with the date below.
+# Written from output/subawards/match_review.csv (the 359 companies new in version 5) before
+# any version 5 return was computed. Changing it after the test runs starts version 6.
 
-frozen: null
-exclude: []
-exclude_recipients: []
+frozen: "2026-11-28"
+exclude:
+  - {cik: 104889, ticker: GHC, reason: "Graham Corp, Graham County Land and Graham Industrial Coatings are unrelated to Graham Holdings"}
+  - {cik: 1579214, ticker: EEX, reason: "Emerald Coast Builders and Emerald Coast Construction are unrelated to Emerald Holding"}
+  - {cik: 1060822, ticker: CRI, reason: "Carter Enterprises and Carter Machinery are unrelated to Carter's Inc"}
+  - {cik: 708818, ticker: QSII, reason: "Quality Systems Applications, Installers and Integrators are unrelated to NextGen (former name Quality Systems)"}
+  - {cik: 1600422, ticker: SDPI, reason: "The Superior Group is unrelated to Superior Drilling Products"}
+  - {cik: 1853145, ticker: EVCM, reason: "Security Information Systems (DoD subcontractor) cannot be confirmed as the EverCommerce subsidiary"}
+  - {cik: 71557, ticker: NUVR, reason: "Hutchinson Corporation (DoD subcontractor) is unrelated to Nuvera"}
+  - {cik: 60714, ticker: LXU, reason: "Consolidated Industries (DoD subcontractor) cannot be confirmed as the LSB subsidiary"}
+  - {cik: 1368519, ticker: NOA, reason: "North American Construction Company LLC is unrelated to North American Construction Group"}
+  - {cik: 913277, ticker: CLAR, reason: "Clarus Fluid Intelligence and Clarus Group are unrelated to Clarus Corp"}
+  - {cik: 70487, ticker: NRCI, reason: "National Research Council Canada is unrelated to NRC Health"}
+  - {cik: 1833197, ticker: SWIM, reason: "Latham Electrical is unrelated to Latham Group"}
+  - {cik: 878522, ticker: STEI, reason: "Stewart Group Enterprises is unrelated to Stewart Enterprises"}
+  - {cik: 1656472, ticker: CRON, reason: "Cronos LLC is unrelated to Cronos Group"}
+  - {cik: 1726079, ticker: LUCN, reason: "Lucent LLC is unrelated to Lucent Inc"}
+  - {cik: 1978165, ticker: LITSF, reason: "Lithos Energy is unrelated to Lithos Group"}
+  - {cik: 821130, ticker: UZA, reason: "Madison Company (DoD subcontractor) cannot be confirmed as the Array subsidiary"}
+  - {cik: 1027207, ticker: EPIQ, reason: "Encore Group USA cannot be confirmed as the Epiq subsidiary"}
+  - {cik: 913241, ticker: SHOO, reason: "Topline Corporation (DoD subcontractor) cannot be confirmed as the Steve Madden subsidiary"}
+  - {cik: 812074, ticker: OI, reason: "Andover Corporation (DoD subcontractor) cannot be confirmed as the O-I subsidiary"}
+  - {cik: 1834622, ticker: HAYW, reason: "Hayward Baker (a Keller company) is unrelated to Hayward Holdings"}
+  - {cik: 1866692, ticker: AMPL, reason: "Amplitude Laser is unrelated to Amplitude Inc"}
+  - {cik: 851310, ticker: HLIT, reason: "Harmonic Drive is unrelated to Harmonic Inc"}
+  - {cik: 814361, ticker: TBL, reason: "Timberland Helicopters and Timberland Equipment are unrelated to Timberland Co"}
+  - {cik: 315189, ticker: DE, reason: "Deere and Ault Consultants is unrelated to Deere & Co"}
+  - {cik: 1652044, ticker: GOOGL, reason: "Alphabet Consulting Services is unrelated to Alphabet Inc"}
+  - {cik: 1068689, ticker: ATDS, reason: "Landstar Inway is unrelated to Data443"}
+  - {cik: 1899830, ticker: PERFF, reason: "Perfect Point EDM and other Perfect companies are unrelated to Perfect Corp"}
+  - {cik: 1800227, ticker: PPLI, reason: "People Information Earth Services and People, Technology and Processes are unrelated to People Inc"}
+  - {cik: 1313310, ticker: GRVY, reason: "Gravity Construction and Gravity Consulting are unrelated to Gravity Co"}
+  - {cik: 1346287, ticker: CLUS, reason: "Cluster Construction Consulting and Cluster Software are unrelated to Cluster Group"}
+  - {cik: 1680689, ticker: NRHI, reason: "Natural Resource Innovations is unrelated to Natural Resource Holdings"}
+  - {cik: 2032341, ticker: CYAB, reason: "Trailblazer Innovations is unrelated to Cyabra"}
+  - {cik: 2112466, ticker: SIAI, reason: "Silentium Defence (Australia) is unrelated to Silentium Ltd"}
+  - {cik: 1970622, ticker: USAR, reason: "Rare Earth Coatings is unrelated to USA Rare Earth"}
+  - {cik: 1419951, ticker: DTST, reason: "Data Storage Technologies is unrelated to Data Storage Corp"}
+  - {cik: 1847806, ticker: GNS, reason: "Genius SIS is unrelated to Genius Group"}
+  - {cik: 1477960, ticker: LMED, reason: "Blue Chip Technologies is unrelated to LataMed AI"}
+  - {cik: 788611, ticker: NTRP, reason: "Sigma Labs (former name) cannot be tied to NextTrip for these awards"}
+  - {cik: 778164, ticker: ALTO, reason: "First Priority Emergency Vehicles is unrelated to Alto Ingredients"}
+  - {cik: 1699136, ticker: WHD, reason: "Cactus Aero is unrelated to Cactus Inc"}
+  - {cik: 1396016, ticker: EDS, reason: "Exceed Microwave is unrelated to Exceed Co"}
+  - {cik: 1026785, ticker: HIHO, reason: "Highway Products Inc is unrelated to Highway Holdings"}
+  - {cik: 836157, ticker: LNN, reason: "Lindsay Precast is unrelated to Lindsay Corp"}
+  - {cik: 1707919, ticker: CENN, reason: "Bendon Gear and Machine is unrelated to Cenntro"}
+  - {cik: 1403853, ticker: NES, reason: "Heckmann Baubetreuung is unrelated to Nuverra"}
+  - {cik: 1692415, ticker: CODX, reason: "Diagnostics For All is unrelated to Co-Diagnostics"}
+  - {cik: 1904501, ticker: ZTEKF, reason: "Zentek Consulting is unrelated to Zentek Ltd"}
+  - {cik: 1357671, ticker: CRTD, reason: "Great Plains Rebar is unrelated to Creatd"}
+  - {cik: 1971213, ticker: SBGI, reason: "Sinclair Drywall and Sinclair Manufacturing are unrelated to Sinclair Inc"}
+  - {cik: 1579910, ticker: RESN, reason: "Resonant Sciences is unrelated to Resonant Inc"}
+exclude_recipients:
+  - {name: "TRIUMPH GROUP INC", reason: "Triumph Group is not an NN Inc subsidiary (Exhibit 21 parsing error)"}
+  - {name: "TRIUMPH GROUP, INC.", reason: "Triumph Group is not an NN Inc subsidiary (Exhibit 21 parsing error)"}
+  - {name: "INNOVATE FUTURES CONSULTING LLC", reason: "unrelated to INNOVATE Corp"}
+  - {name: "PLEXUS SCIENTIFIC CORPORATION", reason: "unrelated to Plexus Corp"}
+  - {name: "PLEXUS INSTALLATIONS INC", reason: "cannot be confirmed as Plexus Corp"}
+  - {name: "NEWARK CORPORATION", reason: "cannot be confirmed as a Kaiser Aluminum subsidiary"}
+  - {name: "RELIANCE CONCRETE CONTRACTORS, INC.", reason: "unrelated to Reliance Inc"}
